@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<title>Pinturelli v0.0.1</title>
+	<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+		<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'>
+		<style> .cs { stroke: rgb(9, 9, 9); stroke-width: 2; } </style>
+		<style> .bl { fill: rgb(255, 255, 255); } </style>
+		<style> .ng { fill: rgb(0, 0, 0); } </style>
+		<circle cx='30' cy='30' r='30' class='cs ng'/>
+		<circle cx='30' cy='30' r='10' class='cs bl'/>
+		<circle cx='10' cy='30' r='10' class='cs bl'/>
+		<circle cx='50' cy='30' r='10' class='cs bl'/>
+		<circle cx='40' cy='12.67' r='10' class='cs bl'/>
+		<circle cx='20' cy='12.67' r='10' class='cs bl'/>
+		<circle cx='40' cy='47.32' r='10' class='cs bl'/>
+		<circle cx='20' cy='47.32' r='10' class='cs bl'/> 
+	</svg>" />
+  
+	<!-- <script src="https://q5js.org/q5.min.js"></script> -->
+	<script src="q5.min.js"></script>
+	<script src="pinturelli/index.js" type="module"></script>
+</head>
+<body>
+<script>
+////////////////////////////////////////////////////////////////////////////////
+
+const seed = createPinturelli(540, true);
+
+const bloqueSup = seed.add({
+	id: "bloqueSup",
+	type: "block",
+});
+
+const btnIzq = bloqueSup.add({
+	id: "btnIzq",
+	type: "button",
+});
+
+const btnDer = {
+	id: "btnDer",
+	type: "button",
+}
+
+seed.select("#bloqueSup").add(btnDer);
+
+seed.plant();
+
+////////////////////////////////////////////////////////////////////////////////
+</script>
+</body>
+</html>
