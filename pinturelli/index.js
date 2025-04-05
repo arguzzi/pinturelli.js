@@ -1,8 +1,22 @@
-import createGlobal from "global/global.js";
-import Button from "ui/components/Button.js";
+import createGlobal from "./global/createGlobal.js";
 
-const GLOBAL = createGlobal(540, true);
+// reminder:
+// --------------
+//
+//  options = {
+//    debugMode: <boolean>,
+//    parentId: <string>,
+//    noAlpha: <boolean>,
+//    displayModeArgs: <array>,
+//    frameRate: <number>
+//  }
+//
+// --------------
 
-const root = GLOBAL.UI_ROOT;
+let instance = 0;
 
-root.agregarElemento(new Button({w: 30, h:60}));
+// createPinturelli <> USER API
+window.createPinturelli = function(resolution, options) {
+  const GLOBAL = createGlobal(resolution, options, instance++);
+  return GLOBAL.UI_ROOT;
+};

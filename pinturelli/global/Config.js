@@ -1,48 +1,65 @@
-import { typedParams } from "../debug/types.js";
+import dbgr from "../debug/validateUserApi.js";
+import output from "../debug/debuggerOutput.js";
 
 export default class Config {
-  #resolution;
-  #canvas;
-  #debug;
+  #DEBUG;
 
   //____________
-  constructor(resolution, debugging) {
+  // public properties will be freezed!!!
+  constructor(GLOBAL, resolution, options = {}) {
+    const { 
+      debugMode = false, 
+      parentId = "",
+      noAlpha = false, 
+      displayModeArgs = [],
+      frameRate = 60,
+    } = options;
 
-    // singleton
-    if (Config.instance) return Config.instance;
-    Config.instance = this;
-    
-    this.updateDebug(debugging);
-    
-    if (this.debug) typedParams.number(resolution);
-    this.#resolution = resolution;
-    this.updateCanvas();
+    // init
+    this.INSTANCE = GLOBAL.INSTANCE;
+    this.INITIAL_TIME = Date.now();
+    this.updateDebug(debugMode);
+    if (this.#DEBUG) dbgr.configParams(resolution, options);
 
-    this.initDateNow = Date.now();
+    // canvas
+    this.CANVAS = {
+      resolutionX: null,
+      resolutionY: null,
+      _elt: null,
+    }
+
+    // view
+    this.RESOLUTION = resolution;
+    this.resizeCanvas();
+    
+    // root
+    this.ROOT_PROTO_ID = "_pinturelli_";
+    this.MAGIC_NUMBER = 250250250250250;
+    
+    // q5 options
+    this.Q5_CONFIG = {
+      parentId: parentId,
+      alpha: !noAlpha,
+      displayModeArgs: displayModeArgs ?? ["maxed"],
+      originalFrameRate: frameRate,
+    }
   }
   
   //____________
-  get resolution() { return this.#resolution };
-  get canvas() { return this.#canvas };
-  get debug() { return this.#debug };
-
-  //____________
-  updateCanvas() {
-    const vw = document.documentElement.clientWidth;
-    const vh = window.innerHeight || document.documentElement.clientHeight;
-    const proportionalHeight = Math.floor((this.#resolution * vh) / vw);
-    this.#canvas = { w: this.#resolution, h: proportionalHeight };
+  get DEBUG() { return this.#DEBUG };
+  updateDebug(mode) {
+    if (mode === true) this.#DEBUG = true;
+    else this.#DEBUG = false;
+    output.firstLog(this.#DEBUG, this.INSTANCE);
   }
 
   //____________
-  updateDebug(mode) {
-    if (mode === true) {
-      console.log(`### Debugger mode is now active!`);
-      this.#debug = true;
-      return;
-    }
-    
-    console.log(`### Debugger turned off`);
-    this.#debug = false;
+  resizeCanvas() {
+    const vvpt = !!window.visualViewport;
+		const vw = vvpt ? window.visualViewport.width : window.innerWidth;
+		const vh = vvpt ? window.visualViewport.height : window.innerHeight;
+    const proportionalHeight = Math.floor((this.RESOLUTION * vh) / vw);
+    this.CANVAS.resolutionX = this.RESOLUTION;
+    this.CANVAS.resolutionY = proportionalHeight;
   }
 }
