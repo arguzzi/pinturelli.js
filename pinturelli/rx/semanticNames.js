@@ -11,11 +11,11 @@
 
 export default Object.freeze({
   singlePointGestures: Object.freeze({
-    STATIC: Object.freeze([ // data: $is-active $exit-code $cnv-x $cnv-y
+    STATIC: Object.freeze([ // data: $is-active $cnv-x $cnv-y
       //______
       // all gestures
       "$gesture-started",
-      "$gesture-cancelled",
+      "$gesture-cancelled", // +data: $is-cancelled
       
       //______
       // tap
@@ -60,7 +60,7 @@ export default Object.freeze({
       "$throwing-inertia-ended",
     ]),
 
-    DYNAMIC: Object.freeze([ // data: $is-active $exit-code $cnv-x $cnv-y
+    DYNAMIC: Object.freeze([ // data: $is-active $cnv-x $cnv-y
       //______
       // hold
       "$holding",

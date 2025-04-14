@@ -1,15 +1,15 @@
 import dbgr from "../debug/validateEmitter.js";
 
 export default class PrimaryEmitter {
+  #contextPipeline;
   #contextWatchedNames
   #contextGlobalState;
-  #contextPipeline;
   #contextMemory;
-
-  // #gesturesWatchedNames;
-  // #gesturesGlobalState;
-  // #gesturesPipeline;
-  // #gesturesMemory;
+  
+  #gesturesPipeline;
+  #gesturesWatchedNames;
+  #gesturesActiveNames;
+  #gesturesMemory;
 
   //____________
   // public properties will be freezed!!!
@@ -32,16 +32,21 @@ export default class PrimaryEmitter {
     }
 
     // gestures initializations
-    // this.#gesturesPipeline = pipelines.gestures;
-    // this.#gesturesWatchedNames = {};
-    // this.#gesturesGlobalState = {
-    //   __gesturesOutput__: this.gesturesOutput.bind(this),
-    //   __debouncingTimers__: new Map(),
-    // }
-    // this.#gesturesMemory = {
-    //   _lastGestureStartedAt: 0,
-    // }
+    this.#gesturesPipeline = pipelines.gestures;
+    this.#gesturesWatchedNames = {};
+    this.#gesturesActiveNames = {};
+    this.#gesturesMemory = {
+      event: null,
+      isPressed: false,
+      temporalCache: new Map(),
+      activePointersIds: new Set(),
+      activeGesturesInfo: new Map(),
+      lastPointermovedInfo: new Map([["time", 0], ["cnvX", 0], ["cnvY", 0]]),
+      _debouncingTimers: new Map(),
+      _gesturesOutput: this.gesturesOutput.bind(this),
+    }
   }
+
 
   //////////////////////////////
   //
@@ -102,7 +107,7 @@ export default class PrimaryEmitter {
   // exitCode:
   // -> 0 = rejected
   // -> 1 = completed
-  // -> 2 = unknown event type error
+  // -> 2 = error. unknown event type
   contextOutput(_e, _state) {
     if (_state.exitCode === 1) {
       _e.$data = _state.$data;
@@ -116,75 +121,86 @@ export default class PrimaryEmitter {
     }
   }
 
-  gesturesInput(){}
-}
 
-// const a = {
-//   //////////////////////////////
-//   //
-//   // GESTURES SEMANTIC SYSTEM:
-//   //
-//   // inputs:
-//   // -> "pointerdown"
-//   // -> "pointermove"
-//   // -> "pointercancel"
-//   // -> "pointerup"
-//   // outputs:
-//   // -> "$gesture-started"
-//   // -> "$gesture-cancelled"
-//   // -> "..."
-//   //____________
-//   // mutation here!
-//   updateContextWatchedNames(watchedNames) {
-//     // if (this.DEBUG) dbgr.watchedNamesParams(watchedNames);
-//     // this.#gesturesWatchedNames = watchedNames.reduce((acc, obj) => ({
-//     //   ["_watchedName_" + obj.$name]: obj.required,
-//     //   ...acc,
-//     // }), {});
-//   }
-//   //____________
-//   // mutation here!
-//   #updateGesturesMemory(_state) {
-//     // this.#gesturesMemory._lastGestureStartedAt = _state._lastGestureStartedAt;
-//   }
-//   //
-//   //////////////////////////////
+  //////////////////////////////
+  //
+  // GESTURES SEMANTIC SYSTEM:
+  //
+  // inputs:
+  // -> "pointerdown"
+  // -> "pointermove"
+  // -> "pointercancel"
+  // -> "pointerup"
+  // outputs:
+  // -> "$gesture-started"
+  // -> "$gesture-cancelled"
+  // -> "..."
+  //____________
+  // mutation here!
+  updateGesturesWatchedNames(watchedNames, isPointermoveNeeded = false) {
+    if (this.DEBUG) dbgr.watchedNamesParams(watchedNames);
+    this.#gesturesWatchedNames = watchedNames.reduce((acc, obj) => ({
+      ["_watchedName_" + obj.$name]: obj.required,
+      ...acc,
+    }), {});
+    this.#gesturesWatchedNames.isPointermoveNeeded = isPointermoveNeeded;
+  }
+  //____________
+  // mutation here!
+  updateGesturesActiveNames(activeNames) {
+    if (this.DEBUG) dbgr.activeNamesParams(activeNames);
+    this.#gesturesActiveNames = activeNames.reduce((acc, obj) => ({
+      ["_activeNames_" + obj.$name]: obj.required,
+      ...acc,
+    }), {});
+  }
+  //____________
+  // mutation here!
+  #updateGesturesMemory() {
+    this.#gesturesMemory.event = null;
+    this.#gesturesMemory.temporalCache = new Map();
+  }
+  //
+  //////////////////////////////
 
-//   //____________
-//   #gesturesStateGenerator() {
-//     // return {
-//     //   ...this.#getGesturesGlobalState,
-//     //   ...this.#gesturesWatchedNames,
-//     //   exitCode: null,
-//     //   $data: new Map(),
-//     //   _painterDeltaTime: this.SKETCH.deltaTime,
-//     //   __checkpoints__: new Set(),
-//     // }
-//   }
-
-//   //____________
-//   gesturesInput(_e) {
-//     // const _state = this.#gesturesStateGenerator();
-//     // this.#gesturesPipeline(_e, _state);
-//   }
-
-//   //____________
-//   // exitCode:
-//   // -> 0 = rejected
-//   // -> 1 = completed
-//   // -> 2 = unknown event type error
-//   gesturesOutput(_e, _state) {
-//     // if (_state.exitCode === 1) {
-//     //   this.#updateGesturesMemory(_state);
-//     //   this.DISPATCHER.emitterInput(_e, _state);
-//     //   return;
-//     // }
+  //____________
+  gesturesInput(event) {
+    console.log("--0:", event.type);
     
-//     // if (this.DEBUG && _state.exitCode !== 0) {
-//     //   dbgr.errorCase(_state);
-//     // }
-//   }
-// }
+    const _state = {
+      exitCode: null,
+      $data: new Map(),
+      ...this.#gesturesWatchedNames,
+      ...this.#gesturesActiveNames,
+      _painterDeltaTime: this.SKETCH.deltaTime,
+      _filtersCheckpoints: new Set(),
+    }
+    
+    this.#gesturesMemory.event = event;
+    this.#gesturesPipeline(this.#gesturesMemory, _state);
+  }
+
+  //____________
+  // exitCode:
+  // -> 0 = rejected
+  // -> 1 = completed
+  // -> 2 = error. unknown event type
+  gesturesOutput(_memo, _state) {
+    if (_state.exitCode === 1) {
+      const $data = new Map(_state.$data);
+      $data.set("$event", _memo._event);
+      this.DISPATCHER.emitterInput($data);
+      this.#updateGesturesMemory();
+      _state = undefined;
+      return;
+    }
+    
+    if (this.DEBUG && _state.exitCode !== 0) {
+      dbgr.errorCase(_memo, _state);
+    }
+    _state = undefined;
+  }
+}
 
 
 

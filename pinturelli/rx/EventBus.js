@@ -49,7 +49,7 @@ export default class EventBus {
   }
 
   //____________
-  publish(pubId, event$name, event) {
+  publish(pubId, event$name, $data) {
     if (this.DEBUG) dbgr.pubParams(this.GLOBAL, pubId, event$name);
 
     if (!this.#registry.has(pubId)) return;
@@ -68,12 +68,12 @@ export default class EventBus {
 
         // middlewares chained execution
         if (i < callbacks.length - 1) {
-          if (callbacks[i](event, publisher, subscriber) === false) return;
+          if (callbacks[i]($data, publisher, subscriber) === false) return;
           continue;
         }
 
         // final callback
-        const nextEvent = callbacks[i](event, publisher, subscriber);
+        const nextEvent = callbacks[i]($data, publisher, subscriber);
         if (this.DEBUG) dbgr.typedParams.string("Event Bus (next)", nextEvent);
         if (nextEvent) this.publish(subId, nextEvent.$name, nextEvent);
       }

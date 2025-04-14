@@ -31,8 +31,8 @@ export default function createGlobal(resolution, options, instance = "") {
 	GLOBAL.HISTORY = Object.freeze(new History(GLOBAL)); // singleton
   
   // init sketch
-	GLOBAL.PAINTER = Object.freeze(new Painter(GLOBAL));
 	GLOBAL.SKETCH = loadAndRunSketch(GLOBAL);
+	GLOBAL.PAINTER = Object.freeze(new Painter(GLOBAL));
 
   // events
 	GLOBAL.EVENT_BUS = Object.freeze(new EventBus(GLOBAL));

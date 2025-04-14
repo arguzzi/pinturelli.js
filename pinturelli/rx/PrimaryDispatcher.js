@@ -14,11 +14,11 @@ export default class PrimaryDispatcher {
     this.#EMITTER.updateContextWatchedNames([
       {
         $name: "ctx$fullscreen-opened",
-        required: "",
+        required: "[]",
       },
       {
         $name: "ctx$fullscreen-closed",
-        required: "",
+        required: "[]",
       },
       {
         $name: "ctx$resizing-native",
@@ -41,6 +41,21 @@ export default class PrimaryDispatcher {
         required: "['ctx$is-activator', 'ctx$is-visual']",
       },
     ]);
+
+    this.#EMITTER.updateGesturesWatchedNames([
+      {
+        $name: "$gesture-started",
+        required: "[]",
+      },
+      {
+        $name: "$gesture-cancelled",
+        required: "[]",
+      },
+      {
+        $name: "$tapped",
+        required: "[$is-active, $cnv-x, $cnv-y]",
+      },
+    ], false);
   }
 
   emitterInput(_e, _state){

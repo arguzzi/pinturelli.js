@@ -1,3 +1,38 @@
+import params from "./gesturesPipelinesParams.js";
+
+////////////////////////////
+//
+const EXIT_CODE = Object.freeze({
+  REJECTED: 0,
+  COMPLETED: 1,
+  UNKNOWN_EVENT_TYPE: 2,
+});
+
+
+
+
+
+
+const tapEnded = (_memo, _state) => {
+
+  const $data = new Map([_state.$data]);
+  $data.set("$name", "$tapped");
+  $data.set("$is-active", false);
+  $data.set("$cnv-x", mouseX);
+  $data.set("$cnv-y", mouseY);
+
+  _memo._gesturesOutput(_memo, { ..._state, $data });
+
+  return true;
+}
+
+
+
+
+export default {
+  tapEnded
+}
+
 
 // single point events ($name)
 
@@ -101,6 +136,3 @@ export default primaryPipeline;
 
 // export default clickFilterFactory;
 
-
-
-export default {}

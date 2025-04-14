@@ -1,121 +1,166 @@
-import singlePointDynamicPipeline from "./singlePointDynamicPipeline.js";
-import singlePointStaticPipeline from "./singlePointStaticPipeline.js";
-import multiPointDynamicPipeline from "./multiPointDynamicPipeline.js";
-import multiPointStaticPipeline from "./multiPointStaticPipeline.js";
+import singlePointDynamic from "./singlePointDynamicPipeline.js";
+import singlePointStatic from "./singlePointStaticPipeline.js";
+import multiPointDynamic from "./multiPointDynamicPipeline.js";
+import multiPointStatic from "./multiPointStaticPipeline.js";
 import params from "./gesturesPipelinesParams.js";
 
 ////////////////////////////
 //
-const mainPipelines = Object.freeze([
-  (_, state) => {  // <--should never be executed
-    state.$data.set("$log", "error: mainPipelines[0] called");
-    return state;
-  },
-  singlePointDynamicPipeline,
-  singlePointStaticPipeline,
-  multiPointDynamicPipeline,
-  multiPointStaticPipeline,
-]);
+const EXIT_CODE = Object.freeze({
+  REJECTED: 0,
+  COMPLETED: 1,
+  UNKNOWN_EVENT_TYPE: 2,
+});
 
 ////////////////////////////
 //
-const recursionFirstPipeline = (_e, state) => {
-  const response = { ...state, $data: new Map(state.$data) };
+const mainPipelines = Object.freeze({
+  singlePointDynamic,
+  singlePointStatic,
+  multiPointDynamic,
+  multiPointStatic,
+});
+
+////////////////////////////
+//
+const pointerdownPipeline = (_memo, _state) => {
+  console.log("--3:", _memo.event.type);
 }
 
 ////////////////////////////
 //
-const newEventFirstPipeline = (_e, state) => {
-  const response = { ...state, $data: new Map(state.$data) };
-  const deltaTime = state._painterDeltaTime;
+const pointermovePipeline = (_memo, _state) => {
+  console.log("--2:", _memo.event.type);
 
-  // dynamic event
-  if (_e.type === "pointermove") {
-    
-    // automatic throttle
-    if (_e.timeStamp - state._lastDynamicTimestamp < deltaTime) {
-      response.$data.set("$log", "F. automatic throttle (pointermove)");
-      response.exitCode = 0;
-      return response;
-    }
+  //____________
+  // isPressed flag
+  if (!_memo.isPressed) return;
 
-    // check last timestamp and ids !%!
-    if (0) {
-      response.set("isActivator", true);
-      response.set("exitCode", 1);
-      return response;
-    }
+  //____________
+  // @> automatic throttle filter
+  const elapsed = performance.now() - _memo.lastPointermovedInfo.get("time");
+  if (
+    !_state._filtersCheckpoints.has("automatic-throttle-filter") &&
+    elapsed < _state._painterDeltaTime
+  ) {
+    const $log = `F@> automatic throttle filter (pointermove)`;
+    const $data = new Map([["$log", $log]]);
+    _memo._gesturesOutput(_memo, { 
+      exitCode: EXIT_CODE.REJECTED,
+      $data
+    });
+    return;
+  }
+  _state._filtersCheckpoints.add("automatic-throttle-filter");
+  _memo.temporalCache.set("elapsed-time", elapsed);
 
-    // not activator output
-    response.set("exitCode", 1);
-    return response;
+  //____________
+  // @> multi pointer
+  if (_memo.activePointersIds.length > 0){
+    multiPointStatic.beginningsPipelines(_memo, _state);
+    return;
   }
   
-  // static active event
-  if (_e.type === "pointerdown") {
-    response.set("isActive", true);
-    response.set("exitCode", 2);
-    return response;
+  //____________
+  // slop touch filter
+  if (!_state._filtersCheckpoints.has("10px-slop-touch-filter") &&
+    elapsed > params.MOVEMENT_ACTIVATOR_COUNTDOWN) {
+    if (1) {
+
+    }
   }
 
-  // unknown event
-  if (_e.type !== "pointercancel" && _e.type !== "pointerup") {
-    response.set("exitCode", 0);
-    return response;
-  }
-
-  // minimal static throttle 
-  if (_e.timeStamp - state.get("_lastStaticTimestamp") < 300) {
-    response.set("exitCode", 0);
-    return response;
-  }
-
-  // static event
-  response.set("isActive", false);
-  response.set("exitCode", 2);
-  return response;
+  //____________
+  // minimal distance
+  //
 }
 
 ////////////////////////////
 //
 // exitCode
-// -> 0 = nulled
-// -> 1 = single dynamic
-// -> 2 = single static
-// -> 3 = mutli dynamic
-// -> 4 = mutli static
-// -> 5 = recursion (new gesture, or inertial movement)
-// -> 6 = process completed
-const gesturesPipelinesIndex = (_e, preState) => {
+// -> 0 = rejected
+// -> 1 = completed
+// -> 2 = error. unknown event type
+const gesturesPipelinesIndex = (_memo, _state) => {
+  console.log("--1:", _memo.event.type);
+  const type = _memo.event.type;
 
-  // preprocess
-  const firstResponse = preState.isRecursion
-    ? recursionFirstPipeline(_e, preState)
-    : newEventFirstPipeline(_e, preState);
+  //____________
+  // @> pointermove pipeline
+  if (_memo.isPointermoveNeeded && type === "pointermove") {
+    pointermovePipeline(_memo, _state);
+    return;
+  }
 
-  // early nulled
-  const firstExitCode = firstResponse.exitCode;
-  if (firstExitCode === 0) return firstResponse;
+  //____________
+  // @> pointermove pipeline
+  if (type === "pointerdown") {
+    pointerdownPipeline(_memo, _state);
+    return;
+  }
+
+  //____________
+  // @> unknown event
+  if (type !== "pointerup" && type !== "pointercancel") {
+    const $log = `2@> unknown event type in context pipe: ${type}`;
+    const $data = new Map([["$log", $log]]);
+    _memo._gesturesOutput(_memo, { 
+      exitCode: EXIT_CODE.UNKNOWN_EVENT_TYPE,
+      $data
+    });
+    return;
+  }
+
+  //____________
+  // @> multi pointer
+  if (_memo.activePointersIds.length > 0){
+    multiPointStatic.endingsPipelines(_memo, _state);
+    return;
+  }
+
+  //____________
+  // single point endings
+  const endingPipelines = {
+    "$tapped": "tapEnded",
+    "$tapped-double": "tapEnded",
+    "$tapped-sequence": "tapEnded",
+    "$holding-ended": "holdEnded",
+    "$holding-double-tapped-ended": "holdEnded",
+    "$dragging-ended": "dragEnded",
+    "$dragging-double-tapped-ended": "dragEnded",
+    "$scrolling-press-ended": "scrollPressEnded",
+    "$swiping-press-ended": "swipePressEnded",
+    "$throwing-press-ended": "throwPressEnded",
+  }
   
-  // process
-  const state = preState.__newStateGenerator__(preState);
-  const response = mainPipelines[firstExitCode](_e, state);
-  const exitCode = response.exitCode;
+  // @> gesture ended
+  const hasProp = _state.hasOwnProperty;
+  console.log("--4:", _memo.event.type);
+  for (const $name of Object.keys(endingPipelines)) {
+    if (!_state.hasOwnProperty("_activeNames_" + $name)) continue;
+    
+    console.log("--5:", $name);
 
-  // nulled
-  if (exitCode === 0) return response;
+    const completed = singlePointStatic[endingPipelines[$name]](_memo, _state);
+    if (completed || !hasProp("_watchedNames_$gesture-cancelled")) continue;
+    
+    // @> gesture cancelled
+    const $data = new Map([_state.$data]);
+    $data.set("$name", "$gesture-cancelled");
+    $data.set("$name-cancelled", $name);
+    $data.set("$is-active", false);
+    $data.set("$cnv-x", mouseX);
+    $data.set("$cnv-y", mouseY);
+    _memo._gesturesOutput(_memo, { ..._state, $data });
+  }
 
-  // new gesture
-  if (exitCode === 5) {
-    response.isRecursion = true;
-    response.__recursiveCaller__(_e, response);
-    response.exitCode = 6;
-  };
-
-  // output
-  return response;
+  // reset default
+  _memo.event = null;
+  _memo.isPressed = false;
+  _memo.activePointersIds = new Set();
 }
 
 ////////////////////////////
 //
 export default gesturesPipelinesIndex;
+

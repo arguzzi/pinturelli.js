@@ -101,14 +101,6 @@ export default function loadAndRunSketch(GLOBAL) {
     checkNodes(ALL_NODES);
   }
 
-  q5.draw = function() {
-    q5.background(225, 80, 50, 20);
-    q5.fill((q5.frameCount % 255) * 0.5 + 65, 100, (q5.frameCount % 255) * 0.5 + 65);
-    q5.circle(q5.width / 2, q5.height / 2, 540);
-    q5.fill(q5.frameCount % 255, 100, 190);
-    q5.circle(q5.width / 2, q5.height / 2, 200);
-  }
-
   //____________
   return q5;
 }

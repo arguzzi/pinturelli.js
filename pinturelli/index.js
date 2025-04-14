@@ -15,7 +15,7 @@ import createGlobal from "./global/createGlobal.js";
 
 let instance = 0;
 
-// createPinturelli <> USER API
+// USER API <> ENTRY POINT
 window.createPinturelli = function(resolution, options) {
   const GLOBAL = createGlobal(resolution, options, instance++);
   return GLOBAL.UI_ROOT;
