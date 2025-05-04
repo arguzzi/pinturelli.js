@@ -1,112 +1,173 @@
-import dbgr from "../debug/validateEventBus.js";
+// import dbgr from "../debug/validateEventBus.js";
 
 //////////////////////////////
 //
-// dynamic registry to organize event reactions by:
-// 1) publisher id, 2) event name, 3) subscriber id.
+// bus to organize event reactions (descriptions) by:
+// 1) channelId, 2) message, 3) receiverId.
 // --------------
 //
-//  #registry = {
-//    pubId<STRING>: {
-//      event$name<STRING>: {
-//        subId<STRING>: <ARRAY[<FUNCTION>]>(callbacks),
-//        subId<STRING>: <ARRAY[<FUNCTION>]>(callbacks),
+//  #bus = channelIdsMap{
+//    channelId: expectedMessagesMap{
+//      message: receiverIdsMap{
+//        receiverId: description,
+//        receiverId: description,
 //      },
-//      event$name<STRING>: {subId<STRING>, subId<STRING>...},
-//      event$name<STRING>: {subId<STRING>, subId<STRING>...},
+//      message: receiverIdsMap{ receiverId: description, receiverId: ...},
+//      message: receiverIdsMap{ receiverId: description, receiverId: ...},
 //    },
-//    pubId<STRING>: {event$name<STRING>, event$name<STRING>...},
-//    pubId<STRING>: {event$name<STRING>, event$name<STRING>...},
+//    channelId: expectedMessagesMap{ message, message, ...},
+//    channelId: expectedMessagesMap{ message, message, ...},
 //  }
-//
-// --------------
-// "callbacks" is an array of middleware functions,
-// the last one is the target function.
-// --------------
-//
-//  (callbacks) = [<FUNCTION>(middleware)..., <FUNCTION>(callback)]
-//
-// --------------
-// the functions are executed sequentially from left to right,
-// with each one receiving: the event (object) as the first agument
-// and the publisher/subscriber (nodes) as the 2nd/3rd arguments.
-// the execution chain stops if any middleware returns false.
-//
-// if final callback return a string: it is recognized as an event$name
-// and is published again as a new event (with subId now being pubId)
 //
 //////////////////////////////
 
 export default class EventBus {
-  #registry;
+  #allNodes;
+  #dispatcher;
+  #painter;
+  #bus;
   
   //____________
-  // public properties will be freezed!!!
-  constructor(GLOBAL) {
-    this.GLOBAL = GLOBAL;
-    this.DEBUG = GLOBAL.CONFIG.DEBUG;
-    this.#registry = new Map();
+  // will be freezed!!!
+  constructor(allNodes, dispatcher, painter) {
+    this.#allNodes = allNodes;
+    this.#dispatcher = dispatcher;
+    this.#painter = painter;
+    this.#bus = new Map();
+  }
+  
+  //____________
+  _removeNodeReferences(nodeId) {
+    // search in all channels where this node is hearing
+    // not now, maybe async or when are no reactions pending
+    // remember: check channels and messages empty maps!!!
+    this.#bus.delete(nodeId);
   }
 
   //____________
-  publish(pubId, event$name, $data) {
-    if (this.DEBUG) dbgr.pubParams(this.GLOBAL, pubId, event$name);
+  _hear(channelId, message, receiverId, reactionCallback) {
+    const bus = this.#bus;
 
-    if (!this.#registry.has(pubId)) return;
-    const events = this.#registry.get(pubId);
+    // if (channelId === "$") dispatcher.subscribe PENDING
 
-    if (!events.has(event$name)) return;
-    const subscribers = events.get(event$name);
+    const hasChannel = bus.has(channelId);
+    const channel = hasChannel ? bus.get(channelId) : new Map();
+    if (!hasChannel) bus.set(channelId, channel);
 
-    const { ALL_NODES } = this.GLOBAL;
-    const publisher = ALL_NODES.get(pubId);
+    const hasReceiver = hasChannel && channel.has(message);
+    const receiverIds = hasReceiver ? channel.get(message) : new Map();
+    if (!hasReceiver) channel.set(message, receiverIds);
 
-    subscribers.forEach((callbacks, subId) => {
-      const subscriber = ALL_NODES.get(subId);
+    receiverIds.set(receiverId, reactionCallback);
+    
+    if (channelId !== "$") return;
+    const requestedData = reactionCallback.firstConfig.requestData;
+    this.#dispatcher._setRequestedData(message, receiverId, requestedData);
+  }
+  
+  //____________
+  _stopHearing(channelId, message, receiverId) {
+    const channel = this.#bus.get(channelId);
+    if (!channel) return; // no one is hearing this channel
+    const receiverIds = channel.get(message);
+    if (!receiverIds) return; // no one is hearing this message
 
-      for (let i = 0; i < callbacks.length; i++) {
+    receiverIds.delete(receiverId);
 
-        // middlewares chained execution
-        if (i < callbacks.length - 1) {
-          if (callbacks[i]($data, publisher, subscriber) === false) return;
-          continue;
-        }
+    if (receiverIds.size === 0) channel.delete(message);
+    if (channel.size === 0) this.#bus.delete(channelId);
+  }
 
-        // final callback
-        const nextEvent = callbacks[i]($data, publisher, subscriber);
-        if (this.DEBUG) dbgr.typedParams.string("Event Bus (next)", nextEvent);
-        if (nextEvent) this.publish(subId, nextEvent.$name, nextEvent);
+  //____________
+  _primaryDispatcherSpeak(data) { // provisional
+    // dispatcher should handle this internally. for targeted dispatch
+    this._speak("$", data.$event_name, data);
+  }
+
+  //____________
+  _speak(channelId, message, data) {
+    const channel = this.#bus.get(channelId);
+    if (!channel) return; // no one is hearing this channel
+    const receiverIds = channel.get(message);
+    if (!receiverIds) return; // no one is hearing this message
+
+    const deletedNodeIds = [];
+
+    receiverIds.forEach((description, receiverId) => {
+      const receiver = this.#allNodes.get(receiverId);
+      
+      if (!receiver) {
+        deletedNodeIds.push(receiverId);
+        console.log("invalid receiverId in event bus!!!!", receiverId);
+        return; // cancels the current execution of the forEach, not all of them
+      }
+
+      // first middlewares
+      for (const validation of description.firstValidations) {
+        if (validation(receiver._passiveManager, data)) continue;
+        return; // cancels the current execution of the forEach, not all of them
+      }
+
+      // automatic re-emition
+      if (description.firstConfig.propagation) {
+        this._speak(receiverId, message, data);
+      }
+
+      // each reaction
+      for (const reaction of description.reactions) {
+        this.#processReaction(receiver, reaction, data);
       }
     });
+
+    // it shouldnt happen
+    for (const deletedNodeId of deletedNodeIds) {
+      receiverIds.delete(deletedNodeId);
+      _removeNodeReferences(deletedNodeId);
+    }
+    if (receiverIds.size === 0) channel.delete(message);
   }
 
   //____________
-  subscribe(pubId, event$name, subId, callbacks) {
-    if (this.DEBUG) dbgr.subParams(this.GLOBAL, pubId, event$name, subId, callbacks);
-
-    if (!this.#registry.has(pubId)) this.#registry.set(pubId, new Map());
-    const events = this.#registry.get(pubId);
-
-    if (!events.has(event$name)) events.set(event$name, new Map());
-    const subscribers = events.get(event$name);
-
-    subscribers.set(subId, callbacks);
-  }
-  
-  //____________
-  // reminder:
-  // #registry[publisherId][event$name][subscriberId] = callbacksArray
-  unsubscribe(pubId, event$name, subId) {
-    if (this.DEBUG) dbgr.unsubParams(this.GLOBAL, pubId, event$name, subId);
+  #processReaction(receiver, reaction, data) {
+    const delay = reaction.config.startAt;
     
-    if (!this.#registry.has(pubId)) return;
-    const events = this.#registry.get(pubId);
+    if (delay > 0) {
+      const delayedConfig = { ...reaction.config, startAt: 0 };
+      const delayedSnapshot = { ...reaction, config: delayedConfig };
+      setTimeout(() => {
+        this.#processReaction(receiver, delayedSnapshot, data);
+      }, delay);
+      return;
+    }
 
-    if (!events.has(event$name)) return;
-    const subscribers = events.get(event$name);
+    reaction.config.__receiver = receiver;
+    reaction.config.__reaction = reaction;
+    reaction.config.__data = data;
 
-    subscribers.delete(subId);
-    if (subscribers.size === 0) events.delete(event$name);
-    if (events.size === 0) this.#registry.delete(pubId);
+    const rxSymbol = Symbol(reaction.config.token);
+    this.#painter._setReaction(rxSymbol, reaction.config);
+    // always: repeat, cancelByToken, cancelBySelector, cancelBySelectorAll
+    // sequence only: duration, useTime, useTimeBezier, useTimeSteps
+
+    for (const validation of reaction.validations) {
+      if (validation(receiver._passiveManager, data)) continue;
+      this.#painter._cancelReaction(rxSymbol);
+      return;
+    }
+    
+    const time = this.#painter._getTimeManager(rxSymbol);
+    reaction.update(receiver._activeManager, data, time);
+
+    for (const relay of reaction.relays) {
+      if (relay.channels.length === 0) {
+        this._speak(receiver.id, data.message, data);
+        continue;
+      }
+
+      relay.channels.forEach(channel => {
+        if (channel !== "#") this._speak(channel, data.message, data);
+        else this._speak(receiver.id, data.message, data);
+      });
+    }
   }
 }

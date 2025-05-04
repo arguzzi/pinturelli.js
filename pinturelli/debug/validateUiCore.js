@@ -1,5 +1,5 @@
-import { areNot, areNotAt, typedParams } from "./validateTypes.js";
-import { throwError } from "./debuggerOutput.js";
+import { areNot, areNotAt, typedParams } from "./_typeValidators.js";
+import { throwError } from "./_debugOutput.js";
 
 //////////////////////////////
 //
@@ -27,7 +27,7 @@ function constructorParams({ GLOBAL, LOCAL }, concret, abstract){
     throwError(`Ui core`, `Invalid position in parent: "${parent?.x}" and "${parent?.y}" must be numbers`);
   }
 
-  if (GLOBAL.ALL_NODES.hasOwnProperty(id) || areNot.string(id)) {
+  if (Object.hasOwn(GLOBAL.ALL_NODES, id) || areNot.string(id)) {
     throwError(`Ui core`, `Invalid id: "${id}" must be an unused string`);
   }
 

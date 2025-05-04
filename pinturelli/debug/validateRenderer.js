@@ -1,5 +1,5 @@
-import { areNot, areNotAt, typedParams } from "./validateTypes.js";
-import { throwError } from "./debuggerOutput.js";
+import { areNot, areNotAt, typedParams } from "./_typeValidators.js";
+import { throwError } from "./_debugOutput.js";
 
 //////////////////////////////
 //

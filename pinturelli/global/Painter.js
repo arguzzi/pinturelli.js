@@ -1,5 +1,168 @@
-import dbgr from "../debug/validateRenderer.js";
+// import dbgr from "../debug/validatePainter.js";
 
+export default class Painter {
+  #snapshots = new Map();
+  #sequences = new Map();
+  #nextFrameTimeout = null;
+  #nextFrameRequested = false;
+  #isPainting = false;
+  #allLayers = {};
+  #getTree;
+  #sketch;
+
+  //____________
+  constructor(getTree, sketch) {
+    this.#getTree = getTree;
+    this.#sketch = sketch;
+
+    sketch.draw = () => {
+      if (this.#snapshots.size !== 0 || this.#sequences.size !== 0) {
+        const dirtyLayers = {};
+        for (const snapshot of this.#snapshots) {
+          
+        }
+        this.#snapshots = new Map();
+      }
+
+      if (0) {
+        for (const sequence of this.#sequences) {
+          this.#paintLayer(sequence.__layer, sequence);
+        }
+        this.#sequences = new Map();
+      }
+
+      sketch.clear();
+      for (const layer of Object.values(this.#allLayers)) {
+        sketch.image(layer, 0, 0);
+      }
+    }
+  }
+
+  //____________
+  get isPainting() {
+    return this.#isPainting;
+  }
+
+  //____________
+  #paintLayer(layer, node, ) {
+
+  }
+
+  //____________
+  #enqueueSnapshot(rxSymbol, reactionConfig) {
+    this.#snapshots.set(rxSymbol, reactionConfig);
+
+    if (this.#isPainting || this.#nextFrameRequested) return;
+    this.#nextFrameRequested = true;
+    this.#nextFrameTimeout = setTimeout(() => {
+      const getter = reactionConfig.__receiver._passiveManager.get;
+      const zLayer = Math.max(0, getter("treeLayer") + getter("nodeLayer"));
+      this.#paintLayer(zLayer, reactionConfig);
+    }, 0);
+  }
+
+  //____________
+  #enqueueSequence(rxSymbol, reactionConfig) {
+    const callback = () => {
+
+    }
+
+    const sequence = {
+      ...reactionConfig,
+      __startedAt: performance.now(),
+      __timeout: setTimeout(callback, reactionConfig.duration),
+    }
+
+    this.#sequences.set(rxSymbol, sequence);
+
+    if (this.#isPainting) return;
+    this.#isPainting = true;
+  }
+
+  //____________
+  _setReaction(rxSymbol, reactionConfig) {
+    if (reactionConfig.duration === 0) {
+      this.#enqueueSnapshot(rxSymbol, reactionConfig);
+      return;
+    }
+    this.#enqueueSequence(rxSymbol, reactionConfig);
+  }
+
+  //____________
+  _cancelReaction(rxSymbol) {
+    // this.#paintQueue.delete(rxSymbol);
+  }
+
+  //____________
+  _getTimeManager(rxSymbol) {
+  }
+
+  //____________
+  _initializeLayers() {
+    const visibleNodes = this.#getTree("*").filter(node => {
+      const getS = node._passiveManager.get; // state manager
+      return getS("subtreeVisibility") && getS("nodeVisibility");
+    });
+
+    for (const node of visibleNodes) {
+      const getter = node._passiveManager.get; // state manager
+      const zLayer = Math.max(0, getter("treeLayer") + getter("nodeLayer"));
+
+      if (!Object.hasOwn(this.#allLayers, zLayer)) {
+        this.#allLayers[zLayer] = this.#sketch.createGraphics(
+          this.#sketch.width,
+          this.#sketch.height
+        );
+      }
+
+      const width = getter("width");
+      const height = getter("height");
+      const buffer = this.#sketch.createGraphics(width, height);
+      const blank = { 
+        get: () => 0,
+        getByKeys: () => 0,
+        riskyPatch: () => 0,
+        riskyPatchByObject: () => 0,
+        riskyRelay: () => 0,
+      };
+
+      const paint = node._paintings[getter("painting")];
+      const snapshot = paint(buffer, node._passiveManager, blank, blank);
+      this.#allLayers[zLayer].image(snapshot, 0, 0);
+    }
+  }
+
+  //____________
+  #updateLayers(node, patchedState) {
+    const getter = node._passiveManager.get;
+    const zLayer = Math.max(0, getter("treeLayer") + getter("nodeLayer"));
+
+    if (!this.#allLayers[zLayer]) {
+      this.#allLayers[zLayer] = this.#sketch.createGraphics(
+        this.#sketch.width, this.#sketch.height
+      );
+    }
+    const buf = this.#sketch.createGraphics(getter("width"), getter("height"));
+    const paintFn = node._paintings[getter("painting")];
+    const snapshot = paintFn(buf, node._passiveManager, this.data, this.time);
+    this.#allLayers[zLayer].image(snapshot, 0, 0);
+  }
+
+  //____________
+  notifyPatch(node, patchedState) {
+  }
+
+  //____________
+  schedulePainter() {
+    if (this.#isPainting) return;
+    this.#sketch.redraw();
+  }
+}
+
+
+
+
+/*
 export default class Renderer {
   #paintings = [];
   #control = {};
@@ -134,3 +297,5 @@ export default class Renderer {
   //   q5.fill(q5.frameCount % 255, 100, 190);
   //   q5.circle(q5.width / 2, q5.height / 2, 200);
   // }
+
+  // */

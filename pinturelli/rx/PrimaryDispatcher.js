@@ -4,58 +4,72 @@ export default class PrimaryDispatcher {
   //____________
   // public properties will be freezed!!!
   constructor(GLOBAL) {
-    this.DEBUG = GLOBAL.CONFIG.DEBUG;
+    this.DEBUG = false;
     this.EVENT_BUS = GLOBAL.EVENT_BUS;
     this.#EMITTER = null;
   }
 
-  setupConection({ EMITTER }) {
+  // _setRequestedData(message, receiverId, requestedData) {
+  // }
+
+  _setupConection({ EMITTER }) {
     this.#EMITTER = EMITTER;
     this.#EMITTER.updateContextWatchedNames([
       {
-        $name: "ctx$fullscreen-opened",
+        $name: "ctx$fullscreen-opened", // PENDING CHANGE "-" TO "_"
         required: "[]",
       },
       {
-        $name: "ctx$fullscreen-closed",
+        $name: "ctx$fullscreen-closed", // PENDING!
         required: "[]",
       },
       {
-        $name: "ctx$resizing-native",
+        $name: "ctx$resizing-native", // PENDING!
         required: "['ctx$is-activator']",
       },
       {
-        $name: "ctx$resizing-normal",
+        $name: "ctx$resizing-normal", // PENDING!
         required: "['ctx$is-activator', 'ctx$is-visual']",
       },
       {
-        $name: "ctx$resizing-soft-debounced",
+        $name: "ctx$resizing-soft-debounced", // PENDING!
         required: "['ctx$is-activator']",
       },
       {
-        $name: "ctx$resizing-hard-debounced",
+        $name: "ctx$resizing-hard-debounced", // PENDING!
         required: "['ctx$is-activator']",
       },
       {
-        $name: "ctx$resizing-activator-debounced",
+        $name: "ctx$resizing-activator-debounced", // PENDING!
         required: "['ctx$is-activator', 'ctx$is-visual']",
       },
     ]);
 
     this.#EMITTER.updateGesturesWatchedNames([
       {
-        $name: "$gesture-started",
+        $event_name: "$gesture_started",
         required: "[]",
       },
       {
-        $name: "$gesture-cancelled",
+        $event_name: "$gesture_cancelled",
         required: "[]",
       },
       {
-        $name: "$tapped",
+        $event_name: "$tapped",
         required: "[$is-active, $cnv-x, $cnv-y]",
       },
     ], false);
+  }
+
+  emitterInputTest(_memo, _state){
+    console.log("FROM DISPATCHER!!!!\n@> type:", _memo?.event?.type, "\n#> memo:", _memo ,"\n*> state:", _state ,"\n")
+    if (_state.$data.get("$event_name") === "$gesture_started") {
+      this.#EMITTER.updateGesturesActiveNames(["$gesture_started"]);
+    }
+    else if (_state.$data.get("$event_name") === "$tapped") {
+      this.#EMITTER.updateGesturesActiveNames([]);
+    }
+    this.EVENT_BUS._primaryDispatcherSpeak(_state.$data);
   }
 
   emitterInput(_e, _state){

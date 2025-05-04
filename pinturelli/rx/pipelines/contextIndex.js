@@ -1,4 +1,4 @@
-import params from "./contextPipelinesParams.js";
+import params from "./contextIndexParams.js";
 
 const EXIT_CODE = Object.freeze({
   REJECTED: 0,
@@ -21,7 +21,7 @@ const processResizeData = (_state, newState, $name) => {
 
   // is-activator data needed
   if (watchedValue.includes("ctx$is-activator")) {
-    if (_state.hasOwnProperty("_isActivatorCache")) {
+    if (Object.hasOwn(_state, "_isActivatorCache")) {
       $data.set("ctx$is-activator", _state._isActivatorCache);
     }
     else {
@@ -125,7 +125,7 @@ const resizePipeline = (_e, _state) => {
 
   //____________
   // @> native resize
-  if (_state.hasOwnProperty(_watch + prefix + "native")) {
+  if (Object.hasOwn(_state, _watch + prefix + "native")) {
     handleResizeEvent(_e, _state, prefix, "native");
     return;
   }
@@ -149,7 +149,7 @@ const resizePipeline = (_e, _state) => {
 
   //____________
   // @> normal resize
-  if (_state.hasOwnProperty(_watch + prefix + "normal")) {
+  if (Object.hasOwn(_state, _watch + prefix + "normal")) {
     handleResizeEvent(_e, _state, prefix, "normal");
     return;
   }
@@ -160,7 +160,7 @@ const resizePipeline = (_e, _state) => {
     const $name = prefix + suffix;
     const prop = _watch + $name;
 
-    if (_state.hasOwnProperty(prop)) {
+    if (Object.hasOwn(_state, prop)) {
       
       // @> debounce filter
       const isDeferred = adaptiveDebounceFilter(_e, _state, $name, delay);

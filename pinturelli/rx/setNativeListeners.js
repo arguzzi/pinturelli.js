@@ -1,4 +1,4 @@
-import { logger } from "../debug/debuggerOutput.js";
+import { logger } from "../debug/_debugOutput.js";
 
 //////////////////////////////
 //
@@ -15,8 +15,7 @@ import { logger } from "../debug/debuggerOutput.js";
 //
 //////////////////////////////
 
-export default function setNativeListeners(GLOBAL) {
-  const { CONFIG, EMITTER } = GLOBAL;
+export default function setNativeListeners(EMITTER) {
   
   //____________
   // gestures inputs
@@ -30,7 +29,7 @@ export default function setNativeListeners(GLOBAL) {
   // context inputs
   const contextHandler = (_e) => EMITTER.contextInput(_e);
 	document.addEventListener("fullscreenchange", contextHandler);
-  const vvpt = CONFIG.VISUAL_VIEWPORT;
+  const vvpt = !!window?.visualViewport;
   if (vvpt) window.visualViewport.addEventListener("resize", contextHandler);
 	else window.addEventListener("resize", contextHandler);
 
@@ -68,5 +67,5 @@ export default function setNativeListeners(GLOBAL) {
 	document.body.style.userSelect = "none";
 
   // # log here *.*
-  if (CONFIG.DEBUG) logger(CONFIG, "Native events added.");
+  // if (CONFIG.DEBUG) logger(CONFIG, "Native events added.");
 }

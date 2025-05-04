@@ -1,4 +1,4 @@
-import dbgr from "../debug/validateEmitter.js";
+// import dbgr from "../debug/validateEmitter.js";
 
 export default class PrimaryEmitter {
   #contextPipeline;
@@ -14,13 +14,13 @@ export default class PrimaryEmitter {
   //____________
   // public properties will be freezed!!!
   constructor(GLOBAL, pipelines) {
-    const { CONFIG, DISPATCHER, SKETCH } = GLOBAL;
-    this.DEBUG = CONFIG.DEBUG;
+    const { DISPATCHER, SKETCH } = GLOBAL;
+    this.DEBUG = false;
     this.DISPATCHER = DISPATCHER;
     this.SKETCH = SKETCH;
     
     // context initializations
-    this.#contextPipeline = pipelines.context;
+    this.#contextPipeline = pipelines.contextPipeline;
     this.#contextWatchedNames = {};
     this.#contextGlobalState = {
       __contextOutput__: this.contextOutput.bind(this),
@@ -32,7 +32,7 @@ export default class PrimaryEmitter {
     }
 
     // gestures initializations
-    this.#gesturesPipeline = pipelines.gestures;
+    this.#gesturesPipeline = pipelines.gesturesPipeline;
     this.#gesturesWatchedNames = {};
     this.#gesturesActiveNames = {};
     this.#gesturesMemory = {
@@ -46,7 +46,6 @@ export default class PrimaryEmitter {
       _gesturesOutput: this.gesturesOutput.bind(this),
     }
   }
-
 
   //////////////////////////////
   //
@@ -69,7 +68,7 @@ export default class PrimaryEmitter {
   updateContextWatchedNames(watchedNames) {
     // if (this.DEBUG) dbgr.watchedNamesParams(watchedNames);
     this.#contextWatchedNames = watchedNames.reduce((acc, obj) => ({
-      ["_watchedName_" + obj.$name]: obj.required,
+      ["_watchedName_" + obj.$event_name]: obj.required,
       ...acc,
     }), {});
     return 1223455;
@@ -117,10 +116,9 @@ export default class PrimaryEmitter {
     }
     
     if (this.DEBUG && _state.exitCode !== 0) {
-      dbgr.errorCase(_state);
+      // dbgr.errorCase(_state);
     }
   }
-
 
   //////////////////////////////
   //
@@ -132,15 +130,15 @@ export default class PrimaryEmitter {
   // -> "pointercancel"
   // -> "pointerup"
   // outputs:
-  // -> "$gesture-started"
-  // -> "$gesture-cancelled"
-  // -> "..."
+  // -> "$gesture_started"
+  // -> "$gesture_cancelled"
+  // -> "$tapped"
   //____________
   // mutation here!
   updateGesturesWatchedNames(watchedNames, isPointermoveNeeded = false) {
     if (this.DEBUG) dbgr.watchedNamesParams(watchedNames);
     this.#gesturesWatchedNames = watchedNames.reduce((acc, obj) => ({
-      ["_watchedName_" + obj.$name]: obj.required,
+      ["_watchedName_" + obj.$event_name]: obj.required,
       ...acc,
     }), {});
     this.#gesturesWatchedNames.isPointermoveNeeded = isPointermoveNeeded;
@@ -148,9 +146,10 @@ export default class PrimaryEmitter {
   //____________
   // mutation here!
   updateGesturesActiveNames(activeNames) {
+
     if (this.DEBUG) dbgr.activeNamesParams(activeNames);
-    this.#gesturesActiveNames = activeNames.reduce((acc, obj) => ({
-      ["_activeNames_" + obj.$name]: obj.required,
+    this.#gesturesActiveNames = activeNames.reduce((acc, $event_name) => ({
+      ["_activeName_" + $event_name]: true,
       ...acc,
     }), {});
   }
@@ -165,13 +164,15 @@ export default class PrimaryEmitter {
 
   //____________
   gesturesInput(event) {
-    console.log("--0:", event.type);
+    // console.log("--0:", event.type);
     
     const _state = {
       exitCode: null,
       $data: new Map(),
       ...this.#gesturesWatchedNames,
       ...this.#gesturesActiveNames,
+      _cnv_x: this.SKETCH.mouseX,
+      _cnv_y: this.SKETCH.mouseY,
       _painterDeltaTime: this.SKETCH.deltaTime,
       _filtersCheckpoints: new Set(),
     }
@@ -189,12 +190,13 @@ export default class PrimaryEmitter {
     if (_state.exitCode === 1) {
       const $data = new Map(_state.$data);
       $data.set("$event", _memo._event);
-      this.DISPATCHER.emitterInput($data);
+      this.DISPATCHER.emitterInputTest(_memo, _state);
       this.#updateGesturesMemory();
       _state = undefined;
       return;
     }
     
+    console.log("GESTURE NOT COMPLETED OK", _memo, _state);
     if (this.DEBUG && _state.exitCode !== 0) {
       dbgr.errorCase(_memo, _state);
     }
@@ -246,13 +248,13 @@ export default class PrimaryEmitter {
 
   //     const activeGestures = emitter.DISPATCHER.getActiveGestures();
   //     const eachActiveGesture = activeGestures.reduce((acc, gesture) => ({
-  //       ["_activeName_" + gesture.$name]: gesture.assignedPointerId,
+  //       ["_activeName_" + gesture.$event_name]: gesture.assignedPointerId,
   //       ...acc,
   //     }), {});
       
   //     const watchedGestures = emitter.DISPATCHER.getWatchedGestures();
   //     const eachWatchedGesture = watchedGestures.reduce((acc, gesture) => ({
-  //       ["_watchedName_" + gesture.$name]: gesture._json_watchedDataNames,
+  //       ["_watchedName_" + gesture.$event_name]: gesture._json_watchedDataNames,
   //       ...acc,
   //     }), {});
 

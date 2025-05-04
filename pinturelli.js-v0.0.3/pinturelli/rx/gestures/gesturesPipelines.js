@@ -134,10 +134,10 @@ const gesturesPipelinesIndex = (_memo, _state) => {
   }
   
   // @> gesture ended
-  const hasProp = _state.hasOwnProperty;
+  const hasProp = prop => Object.hasOwn(_state, prop);
   console.log("--4:", _memo.event.type);
   for (const $name of Object.keys(endingPipelines)) {
-    if (!_state.hasOwnProperty("_activeNames_" + $name)) continue;
+    if (!hasProp("_activeNames_" + $name)) continue;
     
     console.log("--5:", $name);
 

@@ -1,31 +1,34 @@
-import dbgr from "../debug/validateUserApi.js";
-import output from "../debug/debuggerOutput.js";
+import dbgr from "../debug/apiErrors.js";
+import output from "../debug/_debugOutput.js";
 
 export default class Config {
   #DEBUG;
 
   //____________
   // public properties will be freezed!!!
-  constructor(GLOBAL, resolution, options = {}) {
+  constructor(GLOBAL, description = {}) {
     const { 
-      debugMode = false, 
-      parentId = "",
-      noAlpha = false, 
-      displayModeArgs = [],
-      frameRate = 60,
-    } = options;
+      debugMode = false,
+      containerId = undefined, // Default: none (caputre main or body)
+      resolutionX = 540,  // Default: 540. inner resolution, not final size
+      resolutionY = undefined,  // Default: 0 (auto). if both x/y are set = fixed ratio
+      proportion = undefined, // Default: viewport ratio | overwridden if x/y are both set
+      noAlpha = false, // Default: false
+      setup,
+      id,
+    } = description;
 
     // init
     this.INSTANCE = GLOBAL.INSTANCE;
-    this.INITIAL_TIME = Date.now();
+    this.INITIAL_TIMESTAMP = performance.now();
     this.updateDebug(debugMode);
     if (this.#DEBUG) dbgr.configParams(resolution, options);
 
     // canvas
     this.CANVAS = {
-      resolutionX: null,
-      resolutionY: null,
-      _elt: null,
+      resolutionX,
+      resolutionY,
+      _elt: document.getElementById(containerId),
     }
 
     // view
@@ -38,10 +41,11 @@ export default class Config {
     
     // q5 options
     this.Q5_CONFIG = {
-      parentId: parentId,
+      containerId: containerId,
       alpha: !noAlpha,
       displayModeArgs: displayModeArgs ?? ["maxed"],
       originalFrameRate: frameRate,
+      ...setup,
     }
   }
   

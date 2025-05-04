@@ -1,226 +1,240 @@
 /*
-  gesture mixins:
-  -> tappable
-  -> holdable
-  -> draggable
-  -> scrollable
-  -> swipable
-  -> throwable
-  -> transformable ($_$)
+  UiGestures:
+  -> _00_block
+  -> _01_tap
+  -> _02_hold
+  -> _03_drag
+  -> _04_scroll
+  -> _05_swipe
+  -> _06_throw
+  -> _07_multi_tap
+  -> _08_multi_hold
+  -> _09_multi_transform_pan
+  -> _10_multi_transform_zoom
+  -> _11_multi_transform_rotation
+  -> _12_multi_transform_all
+  -> _13_multi_swipe
+
+  root drivers:
+  -> _14_navigation
+  -> _15_context
 */
 
 export default Object.freeze({
   singlePointGestures: Object.freeze({
-    STATIC: Object.freeze([ // data: $is-active $cnv-x $cnv-y
-      //______
-      // all gestures
-      "$gesture-started",
-      "$gesture-cancelled", // +data: $is-cancelled
+    STATIC: Object.freeze([ // data: $event_name $canvas_x $canvas_y
       
-      //______
+      // all gestures
+      "$gesture_started",
+      "$gesture_cancelled", // +data: $cancelled_names
+      
       // tap
       "$tapped",
-      "$tapped-double",
-      "$tapped-sequence", // +data: $tap-number
+      "$tapped_double",
+      "$tapped_sequence", // +data: $tap_number
 
-      //______
       // hold
-      "$holding-started",
-      "$holding-ended",
-      "$holding-double-tapped-started",
-      "$holding-double-tapped-ended",
+      "$holding_started",
+      "$holding_validated",
+      "$holding_cancelled",
+      "$holding_ended",
+      "$holding_double_tapped_started",
+      "$holding_double_tapped_validated",
+      "$holding_double_tapped_cancelled",
+      "$holding_double_tapped_ended",
 
-      //______
       // drag
-      "$dragging-started",
-      "$dragging-ended",
-      "$dragging-double-tapped-started",
-      "$dragging-double-tapped-ended",
+      "$dragging_started",
+      "$dragging_ended",
+      "$dragging_double_tapped_started",
+      "$dragging_double_tapped_ended",
 
-      //______
       // scroll
-      "$scrolling-started",
-      "$scrolling-press-ended",
-      "$scrolling-inertia-ended",
+      "$scrolling_started",
+      "$scrolling_press_ended",
+      "$scrolling_inertia_ended",
 
-      //______
       // swipe
-      "$swiping-started",
-      "$swiping-validated",
-      "$swiping-cancelled",
-      "$swiping-press-ended",
-      "$swiping-inertia-ended",
+      "$swiping_started",
+      "$swiping_validated",
+      "$swiping_cancelled",
+      "$swiping_press_ended",
+      "$swiping_inertia_ended",
 
-      //______
       // throw
-      "$throwing-started",
-      "$throwing-validated",
-      "$throwing-cancelled",
-      "$throwing-press-ended",
-      "$throwing-inertia-ended",
+      "$throwing_started",
+      "$throwing_validated",
+      "$throwing_cancelled",
+      "$throwing_press_ended",
+      "$throwing_inertia_ended",
     ]),
 
-    DYNAMIC: Object.freeze([ // data: $is-active $cnv-x $cnv-y
-      //______
+    DYNAMIC: Object.freeze([ // data: $event_name $canvas_x $canvas_y
+
       // hold
-      "$holding",
-      "$holding-double-tapped",
+      "$holding", // +data: $is_validated $validation_percentage
+      "$holding_double_tapped", // +data: $is_validated $validation_percentage
 
-      //______
       // drag
-      "$dragging", // +data: $vel-x $vel-y
-      "$dragging-double-tapped", // +data: $vel-x $vel-y
+      "$dragging", // +data: $vel_x $vel_y
+      "$dragging_held", // +data: $vel_x $vel_y
+      "$dragging_double_tapped", // +data: $vel_x $vel_y
+      "$dragging_double_tapped_held", // +data: $vel_x $vel_y
       
-      //______
       // scroll
-      "$scrolling-x", // +data: $is-pressed $inertia-percentage $vel-x
-      "$scrolling-x-held", // +data: $is-pressed $inertia-percentage $vel-x
-      "$scrolling-x-double-tapped", // +data: $is-pressed $inertia-percentage $vel-x
-      "$scrolling-x-double-tapped-held", // +data: $is-pressed $inertia-percentage $vel-x
+      "$scrolling_x", // +data: $is_pressed $inertia_percentage $vel_x
+      "$scrolling_x_held", // +data: $is_pressed $inertia_percentage $vel_x
+      "$scrolling_x_double_tapped", // +data: $is_pressed $inertia_percentage $vel_x
+      "$scrolling_x_double_tapped_held", // +data: $is_pressed $inertia_percentage $vel_x
       
-      "$scrolling-y", // +data: $is-pressed $inertia-percentage $vel-y
-      "$scrolling-y-held", // +data: $is-pressed $inertia-percentage $vel-y
-      "$scrolling-y-double-tapped", // +data: $is-pressed $inertia-percentage $vel-y
-      "$scrolling-y-double-tapped-held", // +data: $is-pressed $inertia-percentage $vel-y
+      "$scrolling_y", // +data: $is_pressed $inertia_percentage $vel_y
+      "$scrolling_y_held", // +data: $is_pressed $inertia_percentage $vel_y
+      "$scrolling_y_double_tapped", // +data: $is_pressed $inertia_percentage $vel_y
+      "$scrolling_y_double_tapped_held", // +data: $is_pressed $inertia_percentage $vel_y
 
-      "$scrolling-n", // +data: $is-pressed $inertia-percentage $vel-x $vel-y // <--scrolling in x and y
-      "$scrolling-n-held", // +data: $is-pressed $inertia-percentage $vel-x $vel-y // <--scrolling in x and y
-      "$scrolling-n-double-tapped", // +data: $is-pressed $inertia-percentage $vel-x $vel-y // <--scrolling in x and y
-      "$scrolling-n-double-tapped-held", // +data: $is-pressed $inertia-percentage $vel-x $vel-y // <--scrolling in x and y
+      "$scrolling_n", // +data: $is_pressed $inertia_percentage $vel_x $vel_y // <--scrolling in x and y
+      "$scrolling_n_held", // +data: $is_pressed $inertia_percentage $vel_x $vel_y // <--scrolling in x and y
+      "$scrolling_n_double_tapped", // +data: $is_pressed $inertia_percentage $vel_x $vel_y // <--scrolling in x and y
+      "$scrolling_n_double_tapped_held", // +data: $is_pressed $inertia_percentage $vel_x $vel_y // <--scrolling in x and y
 
-      //______
       // swipe
-      "$swiping-x", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x
-      "$swiping-x-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x
-      "$swiping-x-double-tapped", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x
-      "$swiping-x-double-tapped-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x
+      "$swiping_x", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x
+      "$swiping_x_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x
+      "$swiping_x_double_tapped", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x
+      "$swiping_x_double_tapped_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x
       
-      "$swiping-y", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-y
-      "$swiping-y-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-y
-      "$swiping-y-double-tapped", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-y
-      "$swiping-y-double-tapped-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-y
+      "$swiping_y", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_y
+      "$swiping_y_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_y
+      "$swiping_y_double_tapped", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_y
+      "$swiping_y_double_tapped_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_y
       
-      "$swiping-n", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x $vel-y
-      "$swiping-n-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x $vel-y
-      "$swiping-n-double-tapped", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x $vel-y
-      "$swiping-n-double-tapped-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x $vel-y
+      "$swiping_n", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x $vel_y
+      "$swiping_n_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x $vel_y
+      "$swiping_n_double_tapped", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x $vel_y
+      "$swiping_n_double_tapped_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x $vel_y
       
-      //______
       // throw
-      "$throwing-x", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x
-      "$throwing-x-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x
-      "$throwing-x-double-tapped", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x
-      "$throwing-x-double-tapped-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x
+      "$throwing_x", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x
+      "$throwing_x_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x
+      "$throwing_x_double_tapped", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x
+      "$throwing_x_double_tapped_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x
       
-      "$throwing-y", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-y
-      "$throwing-y-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-y
-      "$throwing-y-double-tapped", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-y
-      "$throwing-y-double-tapped-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-y
+      "$throwing_y", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_y
+      "$throwing_y_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_y
+      "$throwing_y_double_tapped", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_y
+      "$throwing_y_double_tapped_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_y
       
-      "$throwing-n", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x $vel-y
-      "$throwing-n-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x $vel-y
-      "$throwing-n-double-tapped", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x $vel-y
-      "$throwing-n-double-tapped-held", // +data: $is-pressed $is-validated $validation-percentage $inertia-percentage $vel-x $vel-y
+      "$throwing_n", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x $vel_y
+      "$throwing_n_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x $vel_y
+      "$throwing_n_double_tapped", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x $vel_y
+      "$throwing_n_double_tapped_held", // +data: $is_pressed $is_validated $validation_percentage $inertia_percentage $vel_x $vel_y
     ]),
   }),
 
-  multiPointGestures: Object.freeze({ // data: $-$pointers (array of objects, each one with "$is-active", "$exit-code", "$cnv-x" and "$cnv-y" properties) 
-    STATIC: Object.freeze([
-      //______
+  multiPointGestures: Object.freeze({
+    STATIC: Object.freeze([ // data: $event_name $multi_pointers (array of objects, each one with "$event", "$canvas_x" and "$canvas_y" properties) 
+      
       // tap (multi fingers)
-      "$-$tapped",
-      "$-$tapped-double",
-      "$-$tapped-sequence", // +data: $-$tap-number
+      "$multi_tapped",
+      "$multi_tapped_double",
+      "$multi_tapped_sequence", // +data: $multi_tap_number
 
-      //______
       // hold (multi fingers)
-      "$-$holding-started",
-      "$-$holding-ended",
-      "$-$holding-double-tapped-started",
-      "$-$holding-double-tapped-ended",
+      "$multi_holding_started",
+      "$multi_holding_validated",
+      "$multi_holding_cancelled",
+      "$multi_holding_ended",
+      "$multi_holding_double_tapped_started",
+      "$multi_holding_double_tapped_validated",
+      "$multi_holding_double_tapped_cancelled",
+      "$multi_holding_double_tapped_ended",
 
-      //______
-      // transform (two fingers)
-      "$-$transforming-pan-started",
-      "$-$transforming-pan-press-ended",
-      "$-$transforming-pan-inertia-ended",
+      // transform: pan (two fingers) 
+      "$multi_transforming_pan_started",
+      "$multi_transforming_pan_press_ended",
+      "$multi_transforming_pan_inertia_ended",
 
-      "$-$transforming-zoom-started",
-      "$-$transforming-zoom-press-ended",
-      "$-$transforming-zoom-inertia-ended",
+      // transform: zoom in/out, aka pinch (two fingers)
+      "$multi_transforming_zoom_started",
+      "$multi_transforming_zoom_press_ended",
+      "$multi_transforming_zoom_inertia_ended",
 
-      "$-$transforming-rotation-started",
-      "$-$transforming-rotation-press-ended",
-      "$-$transforming-rotation-inertia-ended",
+      // transform: rotation (two fingers)
+      "$multi_transforming_rotation_started",
+      "$multi_transforming_rotation_press_ended",
+      "$multi_transforming_rotation_inertia_ended",
 
-      "$-$transforming-all-started",
-      "$-$transforming-all-press-ended",
-      "$-$transforming-all-inertia-ended",
+      // transform: all (two fingers) <--panning + zooming + rotating
+      "$multi_transforming_all_started",
+      "$multi_transforming_all_press_ended",
+      "$multi_transforming_all_inertia_ended",
 
-      //______
       // swipe (multi fingers)
-      "$-$swiping-started",
-      "$-$swiping-validated",
-      "$-$swiping-cancelled",
-      "$-$swiping-press-ended",
-      "$-$swiping-inertia-ended",
+      "$multi_swiping_started",
+      "$multi_swiping_validated",
+      "$multi_swiping_cancelled",
+      "$multi_swiping_press_ended",
+      "$multi_swiping_inertia_ended",
     ]),
     
-    DYNAMIC: Object.freeze([ // data: $-$pointers (array of objects with "$is-active", "$exit-code", "$cnv-x" and "$cnv-y" properties)
-      //______
+    DYNAMIC: Object.freeze([ // data: $event_name $multi_pointers (array of objects with "$event", "$canvas_x" and "$canvas_y" properties)
+      
       // hold (multi fingers)
-      "$-$holding",
-      "$-$holding-double-tapped",
+      "$multi_holding", // +data: $multi_are_validated $multi_validation_percentage
+      "$multi_holding_double_tapped", // +data: $multi_are_validated $multi_validation_percentage
 
-      //______
       // transform: pan (two fingers) 
-      "$-$transforming-pan", // +data: $-$vel-x $-$vel-y // <--dragging (or scroll in x and y without inertia)
-      "$-$transforming-pan-inertia", // +data: $-$are-pressed $-$inertia-percentage $-$vel-x $-$vel-y // <--scrolling in x and y
+      "$multi_transforming_pan", // +data: $multi_vel_x $multi_vel_y // <--dragging (or scroll in x and y without inertia)
+      "$multi_transforming_pan_inertia", // +data: $multi_are_pressed $multi_inertia_percentage $multi_vel_x $multi_vel_y // <--scrolling in x and y
       
-      // transform: zoom in/out aka pinch (two fingers)
-      "$-$transforming-zoom", // +data: $-$zoom-factor $-$zoom-vel
-      "$-$transforming-zoom-inertia", // +data: $-$are-pressed $-$inertia-percentage $-$zoom-factor $-$zoom-vel
+      // transform: zoom in/out, aka pinch (two fingers)
+      "$multi_transforming_zoom", // +data: $multi_zoom_factor $multi_zoom_vel
+      "$multi_transforming_zoom_inertia", // +data: $multi_are_pressed $multi_inertia_percentage $multi_zoom_factor $multi_zoom_vel
       
-      // transform: rotate (two fingers)
-      "$-$transforming-rotation", // +data: $-$rotation-radians $-$rotation-vel
-      "$-$transforming-rotation-inertia", // +data: $-$are-pressed $-$inertia-percentage $-$rotation-radians $-$rotation-vel
+      // transform: rotation (two fingers)
+      "$multi_transforming_rotation", // +data: $multi_rotation_radians $multi_rotation_vel
+      "$multi_transforming_rotation_inertia", // +data: $multi_are_pressed $multi_inertia_percentage $multi_rotation_radians $multi_rotation_vel
       
-      // transform: all (two fingers) <--panning + zoomimg + rotating
-      "$-$transforming-all", // +data: $-$zoom-factor $-$rotation-radians $-$zoom-vel $-$rotation-vel $-$vel-x $-$vel-y
-      "$-$transforming-all-inertia", // +data: $-$are-pressed $-$inertia-percentage $-$zoom-factor $-$rotation-radians $-$zoom-vel $-$rotation-vel $-$vel-x $-$vel-y
+      // transform: all (two fingers) <--panning + zooming + rotating
+      "$multi_transforming_all", // +data: $multi_zoom_factor $multi_rotation_radians $multi_zoom_vel $multi_rotation_vel $multi_vel_x $multi_vel_y
+      "$multi_transforming_all_inertia", // +data: $multi_are_pressed $multi_inertia_percentage $multi_zoom_factor $multi_rotation_radians $multi_zoom_vel $multi_rotation_vel $multi_vel_x $multi_vel_y
 
-      //______
       // swipe (multi fingers)
-      "$-$swiping-x", // +data: $-$are-pressed $-$are-validated $-$validation-percentage $-$inertia-percentage $-$vel-x
-      "$-$swiping-x-held", // +data: $-$are-pressed $-$are-validated $-$validation-percentage $-$inertia-percentage $-$vel-x
+      "$multi_swiping_x", // +data: $multi_are_pressed $multi_are_validated $multi_validation_percentage $multi_inertia_percentage $multi_vel_x
+      "$multi_swiping_x_held", // +data: $multi_are_pressed $multi_are_validated $multi_validation_percentage $multi_inertia_percentage $multi_vel_x
   
-      "$-$swiping-y", // +data: $-$are-pressed $-$are-validated $-$validation-percentage $-$inertia-percentage $-$vel-y
-      "$-$swiping-y-held", // +data: $-$are-pressed $-$are-validated $-$validation-percentage $-$inertia-percentage $-$vel-y
+      "$multi_swiping_y", // +data: $multi_are_pressed $multi_are_validated $multi_validation_percentage $multi_inertia_percentage $multi_vel_y
+      "$multi_swiping_y_held", // +data: $multi_are_pressed $multi_are_validated $multi_validation_percentage $multi_inertia_percentage $multi_vel_y
 
-      "$-$swiping-n", // +data: $-$are-pressed $-$are-validated $-$validation-percentage $-$inertia-percentage $-$vel-x $-$vel-y
-      "$-$swiping-n-held", // +data: $-$are-pressed $-$are-validated $-$validation-percentage $-$inertia-percentage $-$vel-x $-$vel-y
+      "$multi_swiping_n", // +data: $multi_are_pressed $multi_are_validated $multi_validation_percentage $multi_inertia_percentage $multi_vel_x $multi_vel_y
+      "$multi_swiping_n_held", // +data: $multi_are_pressed $multi_are_validated $multi_validation_percentage $multi_inertia_percentage $multi_vel_x $multi_vel_y
     ])
   }),
 
-  navigation: Object.freeze({ // data: nav$url
-    STATIC: Object.freeze([
-      "nav$changed-state", 
-      "nav$changed-hash",
+  navigation: Object.freeze({
+    STATIC: Object.freeze([ // data: $event_name $navg_url
+      "$navg_assets_loaded", // +data: $navg_time_taken
+      "$navg_changed_state",
+      "$navg_changed_hash",
+    ]), 
+
+    DYNAMIC: Object.freeze([ // data: $event_name
+      "$navg_loading_assets", // +data: $navg_actual_time $navg_aprox_total_time $navg_aprox_ratio_time
     ])
   }),
 
-  context: Object.freeze({ // no extra data
-    STATIC: Object.freeze([
-      "ctx$fullscreen-opened",
-      "ctx$fullscreen-closed",
+  context: Object.freeze({
+    STATIC: Object.freeze([ // data: $event_name
+      "$cntx_fullscreen_opened",
+      "$cntx_fullscreen_closed",
     ]),
 
-    DYNAMIC: Object.freeze([ // data: ctx$is-activator, ctx$is-visual
-      "ctx$resizing-native",
-      "ctx$resizing-normal",
-      "ctx$resizing-soft-debounced",
-      "ctx$resizing-hard-debounced",
-      "ctx$resizing-activator-debounced",
+    DYNAMIC: Object.freeze([ // data: $event_name $cntx_is_activator, $cntx_is_visual
+      "$cntx_resizing_native",
+      "$cntx_resizing_normal",
+      "$cntx_resizing_soft_debounced",
+      "$cntx_resizing_hard_debounced",
+      "$cntx_resizing_activator_debounced",
     ])
   })
 })

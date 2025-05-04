@@ -1,50 +1,53 @@
-import Config from "./Config.js";
-import History from "./History.js";
+// import apiErrors from "./debug/apiErrorsGlobalTypes.js";
 
+import runSketch from "./runSketch.js";
+import Painter from "./Painter.js";
 import EventBus from "../rx/EventBus.js";
 import PrimaryDispatcher from "../rx/PrimaryDispatcher.js";
-import gestures from "../rx/gestures/gesturesPipelines.js";
-import context from "../rx/context/contextPipelines.js";
+import gesturesPipeline from "../rx/pipelines/gesturesIndex.js";
+import contextPipeline from "../rx/pipelines/contextIndex.js";
 import PrimaryEmitter from "../rx/PrimaryEmitter.js";
+import setNativeListeners from "../rx/setNativeListeners.js";
 
-import loadAndRunSketch from "./loadAndRunSketch.js";
-import setNativeListeners from "../rx/setNativeListeners.js"
-
-import exportedClasses from "../ui/UiClasses.js";
 import UiRoot from "../ui/UiRoot.js";
-import Painter from "./Painter.js";
 
-const pipelines = { gestures, context };
+const pipelines = { gesturesPipeline, contextPipeline };
 
 ////////////////////////////
 //
-export default function createGlobal(resolution, options, instance = "") {
+export default rawDescription => {
+  // apiErrors.globalDescription(description);
+
+  const description = {
+    ...rawDescription,
+    memoryLogs: !!rawDescription?.debugSelector,
+    debugSelector: rawDescription?.debugSelector ?? "",
+    containerId: rawDescription?.containerId ?? "",
+    resolutionX: rawDescription?.resolutionX ?? 540,
+    resolutionY: rawDescription?.resolutionY ?? null,
+    proportion: rawDescription?.proportion ?? null,
+    q5WebGpuMode: rawDescription?.q5WebGpuMode ?? false,
+    q5PixelatedMode: rawDescription?.q5PixelatedMode ?? false,
+    q5NoAlphaMode: rawDescription?.q5NoAlphaMode ?? false,
+  }
+
+  // will be freezed!!!
   const GLOBAL = {};
   
-  // inputs
-	GLOBAL.INSTANCE = instance;
-	GLOBAL.CONFIG = Object.freeze(new Config(GLOBAL, resolution, options));
-  
-  // memory
-	GLOBAL.DRAW_LIST = [];
-	GLOBAL.ALL_NODES = Object.freeze(new Map());
-	GLOBAL.HISTORY = Object.freeze(new History(GLOBAL)); // singleton
-  
-  // init sketch
-	GLOBAL.SKETCH = loadAndRunSketch(GLOBAL);
-	GLOBAL.PAINTER = Object.freeze(new Painter(GLOBAL));
+  // general
+	GLOBAL.ALL_NODES = description.allNodesProxy;
+	GLOBAL.SKETCH = runSketch(GLOBAL.ALL_NODES, description);
+  const getTree = path => description.selectAll(`${description.id} ${path}`);
+	GLOBAL.PAINTER = Object.freeze(new Painter(getTree, GLOBAL.SKETCH));
 
   // events
 	GLOBAL.EVENT_BUS = Object.freeze(new EventBus(GLOBAL));
   GLOBAL.DISPATCHER = Object.freeze(new PrimaryDispatcher(GLOBAL));
   GLOBAL.EMITTER = Object.freeze(new PrimaryEmitter(GLOBAL, pipelines));
-  GLOBAL.DISPATCHER.setupConection(GLOBAL);
-  setNativeListeners(GLOBAL);
+  GLOBAL.DISPATCHER._setupConection(GLOBAL);
+  setNativeListeners(GLOBAL.EMITTER);
 
-  // ui tree
-	GLOBAL.CLASSES = Object.freeze(exportedClasses);
-	GLOBAL.UI_ROOT = Object.freeze(new UiRoot(GLOBAL));
-  
   // output
-  return Object.freeze(GLOBAL);
+	GLOBAL.UI_ROOT = Object.freeze(new UiRoot(GLOBAL.SKETCH, description));
+  return Object.freeze(GLOBAL); // only refereced by registry
 }
