@@ -1,11 +1,18 @@
 // import dbgr from "../debug/validatePainter.js";
 
 export default class Painter {
+  #dirtyLayers = new Map();
+  #paintQueue = new Map();
+
+  #isPainting = false;
+  #lastSnapshot = 0;
+
   #snapshots = new Map();
   #sequences = new Map();
+
   #nextFrameTimeout = null;
   #nextFrameRequested = false;
-  #isPainting = false;
+
   #allLayers = {};
   #getTree;
   #sketch;
@@ -101,7 +108,7 @@ export default class Painter {
   _initializeLayers() {
     const visibleNodes = this.#getTree("*").filter(node => {
       const getS = node._passiveManager.get; // state manager
-      return getS("subtreeVisibility") && getS("nodeVisibility");
+      return getS("subtreeVisibile") && getS("nodeVisibile");
     });
 
     for (const node of visibleNodes) {

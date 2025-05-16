@@ -11,8 +11,41 @@ Everything happens inside the canvas: independent node states, decoupled trees, 
 I’m developing this library for fun. This is my personal playground to explore new ways of thinking about user interfaces and the labor of coding. It’s 100% experimental, not recommended for serious office workers or production environments where compatibility and best practices are critical.
 
 Released into the public domain<br>
-CC0 1.0 Universal
+CC0 1.0 Universal<br>
 on May 1st, 2025
+
+<br>
+
+## Cheat sheet
+
+| prefix | origin selector                      |
+|--------|--------------------------------------|
+| `_`    | root id (camelCase by convention)    |
+| `#`    | node id (camelCase by convention)    |
+
+| prefix | groups selector                      |
+|--------|--------------------------------------|
+| `>`    | followers of this node               |
+| `<`    | followed by this node                |
+| `~`    | equals (followers of followed node)  |
+| `*`    | subtree (all followers, recursively) |
+
+| prefix | filter selector                      |
+|--------|--------------------------------------|
+| `.`    | label (camelCase by convention)      |
+| `/`    | ui class (always in PascalCase)      |
+| `%`    | ui gesture (always in UPPER_CASE)    |
+
+| prefix | event bus keys (always camelCase)    |
+|--------|--------------------------------------|
+| `$`    | primary event name (with suffix)     |
+| `$`    | emitter channel (without suffix)     |
+| `#`    | single node channel (node id)        |
+| `@`    | public channel (no convention)       |
+
+<br>
+
+> **suffixes:**<br>* must start with a letter.<br>* they may include digits, hyphens (`-`) and underscores (`_`).<br>* whitespace and other special characters are not allowed.
 
 <br>
 
@@ -36,8 +69,8 @@ on May 1st, 2025
 ### *Node API*
 
 - node description
-  - id
-  - root
+  - node id
+  - root id
   - UiClass
 - state
   - declaration
@@ -56,34 +89,37 @@ on May 1st, 2025
 
 ### *Reaction API*
 
-- hear
+- listen
+  - emitter
   - event bus
-  - primary emitter
-- data
-  - properties
+- channels
+  - emitter channel
+  - single node channel
+- first config
+  - data properties
   - primary request
-- channel
-  - node channel
-- reaction modes
-  - snapshots
-  - sequences
-- reaction options
-  - delay (startAt)
-  - default time
-- reaction syntax
+- reaction object
   - config
   - update
   - relays
-- buffer
+- reaction config
+  - delayed (startAt)
+  - default time
+- reaction update
+  - snapshots
+  - sequences
+- buffer manager
   - get global assets
   - q5 createGraphics
-- state managers
+- state manager
   - get
   - set
-- data managers
+- data manager
   - get
-- time managers
+- time manager
   - get
+- reaction relays
+  - new message
 
 <br>
 
@@ -91,7 +127,7 @@ on May 1st, 2025
 
 ### *Dev Tools*
 
-- **automatic errors**
+- **api errors**
 - **debug mode** 
 - **memory logs**
 - **nodes tracker**
@@ -100,7 +136,8 @@ on May 1st, 2025
 ### *Selection*
 
 - **origin**
-- **path**
+- **groups**
+- **filter**
 
 ### *Registry API*
 
@@ -131,8 +168,8 @@ on May 1st, 2025
 ### *Node API*
 
 - node description
-  - id
-  - root
+  - node id
+  - root id
   - UiClass
   - **UiGestures**
 - state
@@ -154,6 +191,7 @@ on May 1st, 2025
   - nodeLayer
   - painting
   - **overlayed painting**
+  - **pseudo css units**
 - **local assets**
   - **declaration**
   - **lazy loading**
@@ -164,55 +202,59 @@ on May 1st, 2025
 
 ### *Reaction API*
 
-- hear
+- listen
+  - emitter
   - event bus
-  - primary emitter
-  - **semantic names**
-- **stopHearing**
-- data
-  - properties
-  - primary request
-  - **mutation**
-- channel
-  - node channel
+- **stopListening**
+- channels
+  - emitter channel
+  - single node channel
   - **public channel**
-- reaction modes
-  - **first**
+- first config
+  - data properties
+  - primary request
+  - **data mutation**
   - **propagation**
-  - snapshots
-  - sequences
-- reaction options
-  - delay (startAt)
+  - **bubbling**
+- **first middlewares**
+- reaction object
+  - config
+  - **middlewares**
+  - update
+  - **last update**
+  - relays
+- reaction config
+  - delayed (startAt)
   - **riskyRepeat**
   - default time
   - **bezier time**
   - **steps time**
-- reaction syntax
-  - config
-  - **validate**
-  - update
-  - **last update**
-  - relays
-- buffer
+- reaction update
+  - snapshots
+  - sequences
+- buffer manager
   - **get local assets**
   - get global assets
   - q5 createGraphics
-- state managers
+- state manager
   - get
   - **getByKeys**
   - **riskyPatch**
   - **riskyPatchByObject**
   - set
   - **setByObject**
-- data managers
+- data manager
   - get
   - **getByKeys**
   - **riskyPatch**
   - **riskyPatchByObject**
   - **riskyRelay**
-- time managers
+- time manager
   - get
   - **riskyPatch**
+- reaction relays
+  - new message
+  - **delayed (relayAt)**
 
 <br>
 
@@ -228,22 +270,4 @@ It’s a project that *"aims to continue the legacy of the incredible work done 
 
 *"The original q5xjs (v0) was created by @LingDong~ and released under the public domain Unlicense license."*
 
-*"q5.js is open source under the LGPLv3, created and actively maintained by @quinton-ashley. The q5 team includes contributor @Tezumie."*
-
-**Internally uses:**
-
-- WebGPU MSDF text rendering: [https://webgpu.github.io/webgpu-samples/?sample=textRenderingMsdf](https://webgpu.github.io/webgpu-samples/?sample=textRenderingMsdf)
-
-- WebGPU blendMode: [https://webgpufundamentals.org/webgpu/lessons/webgpu-transparency.html](https://webgpufundamentals.org/webgpu/lessons/webgpu-transparency.html)
-
-- HSLtoRGB: [https://stackoverflow.com/a/64090995/3792062](https://stackoverflow.com/a/64090995/3792062)
-
-- HSBtoHSL: [https://stackoverflow.com/a/66469632/3792062](https://stackoverflow.com/a/66469632/3792062)
-
-- OKLCHtoRGB: [https://gist.github.com/dkaraush/65d19d61396f5f3cd8ba7d1b4b3c9432](https://gist.github.com/dkaraush/65d19d61396f5f3cd8ba7d1b4b3c9432) and [https://github.com/color-js/color.js/blob/main/src/spaces/oklch.js](https://github.com/color-js/color.js/blob/main/src/spaces/oklch.js)
-
-- A JS Implementation of Ziggurat Algorithm: [http://ziggurat.glitch.me/](http://ziggurat.glitch.me/)
-
-- p5.js Vector.slerp: [https://github.com/processing/p5.js/blob/v1.10.0/src/math/p5.Vector.js#L2803](https://github.com/processing/p5.js/blob/v1.10.0/src/math/p5.Vector.js#L2803)
-
-- p5.js random: [https://github.com/processing/p5.js/blob/1.1.9/src/math/noise.js](https://github.com/processing/p5.js/blob/1.1.9/src/math/noise.js)
+*"q5.js is open source under the [LGPLv3](https://github.com/q5js/q5.js/blob/main/LICENSE.md), created and actively maintained by @quinton-ashley. The q5 team includes contributor @Tezumie."*

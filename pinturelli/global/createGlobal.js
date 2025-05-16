@@ -1,4 +1,5 @@
-// import apiErrors from "./debug/apiErrorsGlobalTypes.js";
+import flag from "../debug/_errorAndLogFlags.js";
+import { firstLog } from "../debug/_debugOutput.js";
 
 import runSketch from "./runSketch.js";
 import Painter from "./Painter.js";
@@ -15,8 +16,8 @@ const pipelines = { gesturesPipeline, contextPipeline };
 
 ////////////////////////////
 //
-export default rawDescription => {
-  // apiErrors.globalDescription(description);
+export default (dependencies, rawDescription) => {
+  firstLog(flag.err, rawDescription.rootId);
 
   const description = {
     ...rawDescription,
@@ -31,13 +32,17 @@ export default rawDescription => {
     q5NoAlphaMode: rawDescription?.q5NoAlphaMode ?? false,
   }
 
+      // allNodesProxy: this.#allNodesProxyCreator(rootId),
+		  // initializer: () => this.#initializeSeeds(rootId),
+      // selectAll: this.pinturelliRiskySelectAll.bind(this),
+
   // will be freezed!!!
   const GLOBAL = {};
   
   // general
-	GLOBAL.ALL_NODES = description.allNodesProxy;
-	GLOBAL.SKETCH = runSketch(GLOBAL.ALL_NODES, description);
-  const getTree = path => description.selectAll(`${description.id} ${path}`);
+	GLOBAL.ALL_NODES = dependencies.allNodesProxy;
+	GLOBAL.SKETCH = runSketch(dependencies, description);
+  const getTree = path => dependencies.selectAll(`${description.rootId} ${path}`);
 	GLOBAL.PAINTER = Object.freeze(new Painter(getTree, GLOBAL.SKETCH));
 
   // events

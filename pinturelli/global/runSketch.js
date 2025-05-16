@@ -1,3 +1,6 @@
+import flag from "../debug/_errorAndLogFlags.js";
+import { genericLogger } from "../debug/_debugOutput.js";
+
 // import dbgr from "../debug/validateSketch.js";
 // import { logger, checkNodes } from "../debug/_debugOutput.js";
 
@@ -33,24 +36,26 @@
 //
 //////////////////////////////
 
-export default function loadAndRunSketch(allNodes, description) {
+export default function loadAndRunSketch({ allNodesProxy: allNodes, initializer }, description) {
   const debug = description.memoryLogs;
 
-  // reminder:
-  // Q5_CONFIG = {parentId, alpha, displayModeArgs, originalFrameRate}
-  const querySelector = description.containerId;
-  const container = document.querySelector(querySelector);
-  const q5 = container ? new Q5("instance", container) : new Q5("instance");
+  const { rootId, containerId } = description;
+  const hasContainer = containerId !== "";
+  const getContainer = () => document.querySelector(`#${containerId}`);
+  const q5 = hasContainer
+  ? new Q5("instance", getContainer())
+  : new Q5("instance");
 
   //____________
   // reminder:
   // node._assets = {source: [load, callback], source: [load, callback], ...}
   // to--> finalAssets = {source: Object_loaded, source: Object_loaded, ...}
   q5.preload = function() {
-    if (debug) {
+    if (flag.log) genericLogger(rootId, `Preload execution started`);
       // dbgr.checkInitialAssets({ ALL_NODES: allNodes });
       // logger(CONFIG, "Preload execution started."); // # log here *.*
-    }
+    
+    initializer();
 
     const temporalCache = {}; // temporalCache = as finalAssets estructure
     
@@ -90,7 +95,6 @@ export default function loadAndRunSketch(allNodes, description) {
       200, 200,
       { alpha: true }
     );
-    CANVAS._elt.parent(description.containerId);
 
     // q5.displayMode(...Q5_CONFIG.displayModeArgs);
     q5.displayMode(q5.MAXED);

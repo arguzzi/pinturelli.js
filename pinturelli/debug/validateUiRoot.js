@@ -1,5 +1,5 @@
-import { typedParams } from "./validateTypes.js";
-import { throwError } from "./debuggerOutput.js";
+import { typedParams } from "./_typeValidators.js";
+import { throwError } from "./_debugOutput.js";
 
 //////////////////////////////
 //

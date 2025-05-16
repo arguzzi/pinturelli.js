@@ -3,30 +3,36 @@
 const exampleBlock = pinturelliNode({
 
   //_______
-  id: "exampleBlock", // Required
+  nodeId: "#exampleBlock", // Required
   rootId: "_root_0", // Required
-  UiClass: "Block", // Default: "Block"
-  UiGestures: ["$tap"], // Default: []
+  UiClass: "/Block", // Default: "/Block"
+  UiGestures: ["%TAP"], // Default: []
 
   //_______
   state: {
     labels: [], // Default: []
     followingId: "_root_0", // Default: rootId
     left: 30, // Default: 0
+    right: null,
     top: 20, // Default: 0
+    bottom: null,
     width: 100, // Default: 100
     height: 50, // Default: 50
+    proportion: 0,
     offsetX: 10, // Default: 0
     offsetY: 40, // Default: 0
-    treeVisibility: true, // Default: true
-    nodeVisibility: true, // Default: true
+    originX: 0,
+    originY: 0,
+    treeVisibile: true, 
+    nodeVisibile: true,
     treeLayer: 1, // Default: 0
     nodeLayer: 1, // Default: 0
     painting: "myFirstBackground", // Default: "_empty"
+    overlayedPainting: "_empty",
   },
 
   //_______
-  assets: {}, // Default: {}
+  localAssets: {}, // Default: {}
 
   //_______
   paintings: { // Default/always: { _empty, _debug }
@@ -50,7 +56,7 @@ const exampleBlock = pinturelliNode({
 
 ////////////////////////////////////////////
 //
-exampleBlock.hear("$gesture_started", "$", {
+exampleBlock.listen("$gesture_started", "$", {
   first: {
     config: {
       requireData: ["$cnv_x", "$cnv_y"], // Default: []
@@ -79,7 +85,7 @@ exampleBlock.hear("$gesture_started", "$", {
 
 ////////////////////////////////////////////
 //
-exampleBlock.hear("$tapped", "$", {
+exampleBlock.listen("$tapped", "$", {
   first: {
     config: {
       requireData: ["$cnv_x", "$cnv_y"], // Default: []

@@ -1,23 +1,23 @@
 /*
-  UiGestures:
-  -> _00_block
-  -> _01_tap
-  -> _02_hold
-  -> _03_drag
-  -> _04_scroll
-  -> _05_swipe
-  -> _06_throw
-  -> _07_multi_tap
-  -> _08_multi_hold
-  -> _09_multi_transform_pan
-  -> _10_multi_transform_zoom
-  -> _11_multi_transform_rotation
-  -> _12_multi_transform_all
-  -> _13_multi_swipe
+  node drivers:                       UiGestures:
+  -> _00_block.js                     -> %BLOCK
+  -> _01_tap.js                       -> %TAP
+  -> _02_hold.js                      -> %HOLD
+  -> _03_drag.js                      -> %DRAG
+  -> _04_scroll.js                    -> %SCROLL
+  -> _05_swipe.js                     -> %SWIPE
+  -> _06_throw.js                     -> %THROW
+  -> _07_multi_tap.js                 -> %MULTI_TAP
+  -> _08_multi_hold.js                -> %MULTI_HOLD
+  -> _09_multi_transform_pan.js       -> %MULTI_TRANSFORM_PAN
+  -> _10_multi_transform_zoom.js      -> %MULTI_TRANSFORM_ZOOM
+  -> _11_multi_transform_rotation.js  -> %MULTI_TRANSFORM_ROTATION
+  -> _12_multi_transform_all.js       -> %MULTI_TRANSFORM_ALL
+  -> _13_multi_swipe.js               -> %MULTI_SWIPE
 
   root drivers:
-  -> _14_navigation
-  -> _15_context
+  -> _14_navigation.js
+  -> _15_context.js
 */
 
 export default Object.freeze({

@@ -77,7 +77,7 @@ const createAreNotAt = type => (...args) => {
 const createTypedParams = (type, fn_areNotAt) => (origin, ...args) => {
   const invalidIndex = fn_areNotAt(...args);
   if (invalidIndex === -1) return;
-  throwError(origin, `This input only accepts values of type ${type}. Invalid parameter at index ${invalidIndex}: "${args[invalidIndex]}"`);
+  throwError(origin, `This input only accepts values of type===${type}. Invalid parameter at index ${invalidIndex}: "${args[invalidIndex]}"`);
 };
 
 //////////////////////////////
@@ -88,9 +88,10 @@ const createTypedParams = (type, fn_areNotAt) => (origin, ...args) => {
  * areNot.boolean(arg0, arg1, arg2, etc);
  * // returns true if any argument is non-boolean, and false if not
  */
-export const areNot = supportedTypes.reduce((acc, type) => (
-  acc[type] = createAreNot(type)
-), {});
+export const areNot = supportedTypes.reduce((acc, type) => {
+  acc[type] = createAreNot(type);
+  return acc;
+}, {});
 
 /**
  * @example
@@ -98,9 +99,10 @@ export const areNot = supportedTypes.reduce((acc, type) => (
  * // returns the index of the first argument that is not a boolean,
  * // or -1 if all arguments are booleans.
  */
-export const areNotAt = supportedTypes.reduce((acc, type) => (
-  acc[type] = createAreNotAt(type)
-), {});
+export const areNotAt = supportedTypes.reduce((acc, type) => {
+  acc[type] = createAreNotAt(type);
+  return acc;
+}, {});
 
 /**
  * @example
@@ -109,9 +111,10 @@ export const areNotAt = supportedTypes.reduce((acc, type) => (
  * // otherwise, throws an error immediately for the first non-boolean value,
  * // specifying the "origin" of the call and the exact invalid argument.
  */
-export const typedParams = supportedTypes.reduce((acc, type) => (
-  acc[type] = createTypedParams(type, areNotAt[type])
-), {});
+export const typedParams = supportedTypes.reduce((acc, type) => {
+  acc[type] = createTypedParams(type, areNotAt[type]);
+  return acc;
+}, {});
 
 //////////////////////////////
 //

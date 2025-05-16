@@ -1,30 +1,41 @@
-// import devErrors from "./debug/devErrorsRegistry.js";
-// import memoryLogs from "./debug/_memoryLogs.js";
+import { devMode } from "./debug/_devModeFlag.js";
+import validate from "./debug/validateRegistry.js";
+
+import flag from "./debug/_errorAndLogFlags.js";
+import apiErrors from "./debug/apiErrorsRegistry.js";
+import memoryLogs from "./debug/_memoryLogs.js";
 
 ////////////////////////////
 //
 export default class Registry {
-	static #instanced = false;
+  static #singletonKey = Symbol();
+	static #firstInstance = null;
 	static #rootCount = 0;
 	#createGlobal = null;
   #stateManagers = null;
   #UiGestures = null;
 	#UiClasses = null;
-	#allRoots = new Map(); // [["id": GLOBAL] ...]
-	#allNodesByRoot = new Map(); // [["id": new Map([["id": node] ...])] ...]
-  #allRootsIdsByNodeId = new Map(); // [["id": "id"] ...] (nodeId => rootId)
-	#allFollowers = new Map(); // [["id": new Set(["id", "id", ...])] ...]
-	#wereInitialized = new Set(); // ["id", "id", ...]
-  #cleanupTracker = new FinalizationRegistry(id => memoryLogs.cleanupEnded(id));
+	#allRoots = new Map(); // [[rootId: GLOBAL] ...]
+	#allNodesByRoot = new Map(); // [[rootId: new Map([[nodeId: node] ...])] ...]
+  #allRootsIdsByNodeId = new Map(); // [[nodeId: rootId], [nodeId: rootId] ...]
+	#allFollowers = new Map(); // [[nodeId: new Set([nodeId, nodeId, ...])] ...]
+	#wereInitialized = new Set(); // [nodeId, nodeId, ...]
+  #cleanupLogger = new FinalizationRegistry(info => {
+    memoryLogs.cleanupEnded(info[0], info[1]); // params: rootId, nodeId
+  });
 
 	//____________
-	constructor(imports) {
+  static getSingleton(imports) {
+    if (devMode) validate.getSingleton(imports);
+    if (Registry.#firstInstance) return Registry.#firstInstance;
+    Registry.#firstInstance = new Registry(Registry.#singletonKey, imports);
+    return Registry.#firstInstance;
+  }
 
-		// singleton pattern
-    1_1_1 // devErrors.duplicatedRegistry(Registry.#instanced);
-		Registry.#instanced = true;
-
-		this.#createGlobal = imports.createGlobal;
+	//____________
+	constructor(secretKey, imports) {
+    if (devMode) validate.constructorCall(Registry.#singletonKey, secretKey);
+    this.#createGlobal = imports.createGlobal;
     this.#stateManagers = imports.stateManagers;
     this.#UiGestures = imports.UiGestures;
 		this.#UiClasses = imports.UiClasses;
@@ -34,6 +45,7 @@ export default class Registry {
   // API Root
 	#allNodesProxyCreator(rootId) {
 		const allNodes = this.#allNodesByRoot.get(rootId);
+    if (devMode) validate.allNodesProxyCreator(rootId, allNodes);
 		return new Proxy({}, {
 
       // only returns nodes from this root
@@ -46,7 +58,7 @@ export default class Registry {
 
       // only check nodes from this root
 			has: (_, id) => {
-				return !!allNodes.has(id);
+				return allNodes.has(id);
 			},
 
       // only returns ids from this root
@@ -62,7 +74,7 @@ export default class Registry {
           configurable: true, // *target is {} so makes no side effects
           enumerable: true,
           value: node,
-          writable: false
+          writable: false,
         }
       },
   
@@ -73,138 +85,90 @@ export default class Registry {
 		});
 	}
 
-  //____________
-  // API Root
-  #followersProxyCreator(id) {
-    const followersSet = this.#allFollowers.get(id);
-    const getFollowersIds = () => Array.from(followersSet || []);
-    return new Proxy([], {
-
-      // simulate array of followers ids
-      get: (_, prop) => {
-        
-        // length property
-        if (prop === "length") return followersSet.size;
-        
-        // indexed properties
-        const ids = getFollowersIds();
-        if (typeof prop === "string" && /^\d+$/.test(prop)) { // positive int
-          return ids[Number(prop)]; // return value at that position
-        }
-
-        // needed by for...of 
-        if (prop === Symbol.iterator) {
-          const ids = getFollowersIds();
-          return ids[Symbol.iterator].bind(ids);
-        }
-
-        // prototype properties
-        if (prop in Array.prototype) {
-          const propValue = Array.prototype[prop];
-          if (typeof propValue !== "function") return propValue;
-          return propValue.bind(ids); // object/array methods
-        }
-
-        // unknown property
-        return undefined
-      },
-
-      // prevent modification
-      set: () => false,
-
-      // simulate array
-      has: (_, prop) => {
-        if (prop === "length") return true;
-        if (typeof prop === "string" && /^\d+$/.test(prop)) { // positive int
-          return Number(prop) < followersSet.size;
-        }
-        return false; // unknown property
-      },
-
-      // simulate array
-      ownKeys: () => {
-        return  Array.from(
-          { length: followersSet.size }, 
-          (_, i) => i.toString()
-        ).concat("length");
-      },
-
-      // needed by ownKeys
-      getOwnPropertyDescriptor: (_, prop) => {
-        if (prop === "length") return {
-          configurable: false,
-          enumerable: false,
-          value: followersSet.size,
-          writable: false,
-        }
-
-        const ids = getFollowersIds();
-        if (typeof prop === "string" && /^\d+$/.test(prop)) {
-          const index = Number(prop);
-          if (index < ids.length) return {
-            configurable: false,
-            enumerable: true,
-            value: ids[index],
-            writable: false,
-          }
-        }
-        if (prop === Symbol.iterator) {
-          return {
-            configurable: false,
-            enumerable: false,
-            value: ids[Symbol.iterator].bind(ids),
-            writable: false
-          };
-        }
-        return undefined;
-      },
-      
-      // prevent modification
-      defineProperty: () => false,
-      deleteProperty: () => false,
-      preventExtensions: () => false,
-    });
-  }
-
 	//____________
   // API Root
-	pinturelliRoot(description) {
+  pinturelliRoot(description) {
 		const rootId = description.customRootId ?? `_root_${Registry.#rootCount}`;
-		1_1_1 // devErrors.pinturelliRoot(this.#allRoots, rootId);
+    const newDescription = { // default placeholder
+      containerId: null,
+      resolutionX: 540,
+      resolutionY: null,
+      proportion: null,
+      q5WebGpuMode: false,
+      q5PixelatedMode: false,
+      q5NoAlphaMode: false,
+      debugTracker: "",
+      globalAssets: {},
+      sketchSetup: [],
+      ...description, // overwrites placeholder
+      rootId: rootId,
+      nodeId: rootId,
+    }
+
+    // types and format validation
+		if (flag.err) apiErrors.pinturelliRoot(this.#allRoots, newDescription);
     
-    // new global object
+    // memory pt1
     this.#allNodesByRoot.set(rootId, new Map()); // memory update (1/5)
     this.#allRootsIdsByNodeId.set(rootId, rootId); // memory update (2/5)
 		this.#allFollowers.set(rootId, new Set()); // memory update (3/5)
-		const allNodesProxy = this.#allNodesProxyCreator(rootId);
-		const initializer = () => this.#initializeSeeds(rootId);
-    const selectAll = this.pinturelliRiskySelectAll.bind(this);
-		const GLOBAL = this.#createGlobal({
-        ...description,
-        id: rootId,
-        rootId: rootId,
-        _id_followers: this.#followersProxyCreator(rootId), // read-only>> []
-        allNodesProxy, // read-only>> GLOBAL.ALL_NODES: { nodeId: node, ...}
-        initializer, // executed in sketch preload (before loading assets)
-        selectAll,
-      },
-		);
+    
+    // new global object
+		const dependencies = {
+      allNodesProxy: this.#allNodesProxyCreator(rootId),
+		  initializer: () => this.#initializeSeeds(rootId),
+      selectAll: this.pinturelliRiskySelectAll.bind(this),
+    }
+		const GLOBAL = this.#createGlobal(dependencies, {
+      ...newDescription,
+      _getFollowerIds: () => (
+        Object.freeze(Array.from(this.#allFollowers.get(rootId)))
+      )
+    });
 
+    // memory pt2
     const root = GLOBAL.UI_ROOT;
     this.#allNodesByRoot.get(rootId).set("_", root); // memory update (4a/5)
     this.#allNodesByRoot.get(rootId).set(rootId, root); // memory update (4b/5)
 		this.#allRoots.set(rootId, GLOBAL); // memory update (5/5)
+    if (flag.log) memoryLogs.newRootCreated(GLOBAL, rootId);
+
     Registry.#rootCount++;
-		return root;
+    return root;
 	}
 
 	//____________
   // API Node
 	pinturelliNode(description) {
-    1_1_1 // devErrors.pinturelliNode(description, this.#allRoots, this.#allNodesByRoot);
+    const { state = {}, ...newDescription } = description;
+    const newState = { // default placeholder
+      labels: [],
+      followingId: description.rootId,
+      left: 0,
+      right: null,
+      top: 0,
+      bottom: null,
+      width: 100,
+      height: 150,
+      proportion: null,
+      offsetX: 0,
+      offsetY: 0,
+      originX: 0,
+      originY: 0,
+      treeVisibile: true,
+      nodeVisibile: true,
+      treeLayer: 0,
+      nodeLayer: 0,
+      painting: "_empty",
+      overlayedPainting: "_empty",
+      ...state, // overwrites placeholder
+    }
+
+    // types and format validation
+    if (flag.err) apiErrors.pinturelliNode(this.#allNodesByRoot, description);
 
     // update relations
-    const { id: nodeId, rootId: rootId } = description;
+    const { rootId, nodeId } = description;
     this.#allRootsIdsByNodeId.set(nodeId, rootId);
     const hasFollowers = this.#allFollowers.has(nodeId);
     if (!hasFollowers) this.#allFollowers.set(nodeId, new Set());
@@ -214,10 +178,9 @@ export default class Registry {
     else this.#allFollowers.set(followingId, new Set([nodeId]));
 
     // state property
-    const { state = {}, ...newDescription } = description;
     const privateState = {
-      ...state,
-      labels: state?.labels ?? [],
+      ...newState,
+      labels: newState?.labels ?? [],
       followingId,
     };
 
@@ -227,24 +190,28 @@ export default class Registry {
         UiClass: "Block",
         UiGestures: [],
         ...newDescription, // validated id and root. no state property
-        _id_followers: this.#followersProxyCreator(nodeId),
         _privateState: privateState,
+        _getFollowerIds: () => (
+          Object.freeze(Array.from(this.#allFollowers.get(rootId)))
+        ),
       });
     }
 
 		// eager loaded (before initialization)
-    const heared = []; // seed memory for primary events
+    const listened = []; // seed memory for primary events
     const pinturelliNode = this.pinturelliNode.bind(this); // clonator
 		const seed = Object.freeze({
       UiClass: "Block",
       UiGestures: [],
 			...newDescription, // validated id and root. no state property
-      _id_followers: this.#followersProxyCreator(nodeId),
       _privateState: privateState,
       _getPublicState: key => privateState[key], // closure (read-only)
+      _getFollowerIds: () => (
+        Object.freeze(Array.from(this.#allFollowers.get(rootId)))
+      ),
       _removeReferences: () => undefined, // useless before initialization
-      _handled: heared, // expected mutation via closure
-			hear: (...args) => heared.push(args), // closure (setter)
+      _listened: listened, // mutation expected via closure
+			listen: (...args) => listened.push(args), // closure (setter)
 			clone: overwriteDescription => pinturelliNode({ // binded registry method
         ...newDescription, state: { ...privateState }, ...overwriteDescription,
       }),
@@ -257,8 +224,8 @@ export default class Registry {
 	//____________
   // API Node
 	#addNode(description) {
-		1_1_1 // devErrors.addNode(description, this.#UiGestures, this.#UiClasses);
-    
+    if (!description.nodeId.startsWith("#")) return;
+
     const GLOBAL = this.#allRoots.get(description.rootId);
     const dependencies = {
       UI_ROOT: GLOBAL.UI_ROOT,
@@ -270,9 +237,9 @@ export default class Registry {
     };
     
 		// UiClass extends UiCore (composite pattern)
-		const UiClass = this.#UiClasses[description.UiClass ?? "Block"];
+		const UiClass = this.#UiClasses[description?.UiClass.slice(1) ?? "Block"];
 		const newNode = Object.freeze(new UiClass(dependencies, description)); //<@!
-		this.#allNodesByRoot.get(description.rootId).set(description.id, newNode);
+		this.#allNodesByRoot.get(description.rootId).set(description.nodeId, newNode);
 		return newNode;
 	}
   
@@ -280,19 +247,20 @@ export default class Registry {
   // API Node
 	#initializeSeeds(rootId) {
     if (this.#wereInitialized.has(rootId)) return;
-    this.#wereInitialized.add(rootId); // first time flag
+    this.#wereInitialized.add(rootId);
 
 		// eager loaded nodes (from seeds to nodes)
-    const allSeeds = [ ...this.#allNodesByRoot.get(rootId).values() ];
-		for (const seed of allSeeds) {
-			const node = this.#addNode(seed); // overwrites seed in allNodesByRoot
-			seed._heared.forEach(args => node.hear(...args));
+    const allNodes = this.#allNodesByRoot.get(rootId);
+    for (const [nodeId, seed] of allNodes) {
+      if (!nodeId.startsWith("#")) continue;
+			const newNode = this.#addNode(seed);
+			seed._listened.forEach(args => newNode.listen(...args));
+      allNodes.set(nodeId, newNode); // overwrite seed
 		}
 
 		// relations validation and completed log
-    const GLOBAL = this.#allRoots.get(rootId);
-    1_1_1 // devErrors.runInitialization(GLOBAL, allSeeds);
-    if (GLOBAL.CONFIG.DEBUG) memoryLogs.newTree(GLOBAL);
+    if (flag.log) memoryLogs.initializeSeeds(allNodes, rootId);
+    // if (flag.err) apiErrors.initializeSeeds(this.#allRoots.get(rootId));
 	}
 
 	//____________
@@ -349,7 +317,7 @@ export default class Registry {
     if (path.startsWith(">")) {
       output.newPath = path.slice(1).trim();
       output.newAccumulated = accumulated.flatMap(node => 
-        node._id_followers.reduce((acc, followerId) => {
+        node._getFollowerIds().reduce((acc, followerId) => {
           const follower = targetMap.get(followerId);
           if (follower) acc.push(follower);
           return acc;
@@ -380,7 +348,7 @@ export default class Registry {
         addedIds.add(followingId);
         const root = this.#allRoots.get(followingId)?.UI_ROOT;
         const followed = root ?? targetMap.get(followingId);
-        return followed._id_followers.reduce((acc, followerId) => {
+        return followed._getFollowerIds().reduce((acc, followerId) => {
           const follower = targetMap.get(followerId);
           if (follower) acc.push(follower);
           return acc;
@@ -422,10 +390,10 @@ export default class Registry {
     else if (path.startsWith("*")) {
       const addedIds = new Set();
       const goDeeper = (acc, node) => {
-        if (addedIds.has(node.id)) 1_1_1 // devErrors.loopInTree();
-        addedIds.add(node.id);
+        if (addedIds.has(node.nodeId)) 1_1_1 // devErrors.loopInTree();
+        addedIds.add(node.nodeId);
         acc.push(node); // depth-first traversal (dfs), preorder variant
-        for (const follower of node._id_followers) {
+        for (const follower of node._getFollowerIds()) {
           goDeeper(acc, follower);
         }
       }
@@ -478,20 +446,20 @@ export default class Registry {
   // API Clone
   pinturelliClone(path, description = {}) {
     const node = this.pinturelliRiskySelect(path);
-    const newId = description.id ?? `${node.id}_0`;
+    const newId = description.nodeId ?? `${node.nodeId}_0`;
     1_1_1 // devErrors.nodeIdValidator(newId, this.#allNodesByRoot.get(node.rootId));
-    return node.clone({ ...description, id: newId });
+    return node.clone({ ...description, nodeId: newId });
   }
 
 	//____________
   // API Clone
   pinturelliCloneAll(path, description = {}) {
     const nodes = this.pinturelliRiskySelectAll(path);
-    const customId = description?.id;
+    const customId = description?.nodeId;
     return nodes.map((node, index) => {
-      const newId = customId ? `${customId}_${index}` : `${node.id}_${index}`;
+      const newId = customId ? `${customId}_${index}` : `${node.nodeId}_${index}`;
       1_1_1 // devErrors.nodeIdValidator(newId, this.#allNodesByRoot.get(node.rootId));
-      return node.clone({ ...description, id: newId });
+      return node.clone({ ...description, nodeId: newId });
     });
   }
 
@@ -515,7 +483,7 @@ export default class Registry {
     if (!node) return;
 		
     // root case
-		if (node.id === node.rootId) {
+		if (node.nodeId === node.rootId) {
       const rootId = node.rootId;
       const R_GLOBAL = this.#allRoots.get(rootId);
 			for (const followerId of this.#allFollowers.get(rootId)) {
@@ -524,7 +492,7 @@ export default class Registry {
 
       if (R_GLOBAL.CONFIG.DEBUG) {
         memoryLogs.cleanupStarted(rootId);
-        this.#cleanupTracker.register(R_GLOBAL.UI_ROOT, rootId);
+        this.#cleanupLogger.register(R_GLOBAL.UI_ROOT, [rootId, rootId]);
       }
 
 			this.#allFollowers.delete(rootId);
@@ -539,12 +507,12 @@ export default class Registry {
     // seed/node case
     const GLOBAL = this.#allRoots.get(node.rootId);
     if (GLOBAL.CONFIG.DEBUG) {
-      memoryLogs.cleanupStarted(node.id);
-      this.#cleanupTracker.register(node, node.id);
+      memoryLogs.cleanupStarted(node.nodeId);
+      this.#cleanupLogger.register(node, [node.rootId, node.nodeId]);
     }
 
     const targetMap = this.#allNodesByRoot.get(node.rootId);
-		this.#recursiveDestroyer(node.id, targetMap);
+		this.#recursiveDestroyer(node.nodeId, targetMap);
 	}
 
 	//____________
@@ -552,7 +520,7 @@ export default class Registry {
 	pinturelliRiskyDestroyAll(path) {
 		const nodes = this.pinturelliRiskySelectAll(path);
 		for (const node of nodes) {
-			this.pinturelliRiskyDestroy(`#${node.id}`);
+			this.pinturelliRiskyDestroy(node.nodeId);
 		}
 	}
 }

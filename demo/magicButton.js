@@ -4,31 +4,30 @@ const magicButton = pinturelliNode({
 
   //_______
   // node info (inmutable)
-  id: "magicButton", // Required, no default | always camelCase
+  nodeId: "magicButton", // Required, no default | always camelCase
   rootId: "_root_0", // Required, no default | always start with "_"
   UiClass: "Button", // Default: "Block" | alt: "Void" | always PascalCase
-  UiGestures: ["$hold", "$drag"], // Default: [] | always start with "$"
+  UiGestures: ["%HOLD", "%DRAG"], // Default: [] | always start with "$"
 
   //_______
   // numeric -> canvas inner resolution unit
-  // strings -> pseudo css horizontal units: ".1" "0.1" "1%" "1px" "1rem" "1vw"
-  // strings -> pseudo css vertical units: ".1" "0.1" "1%" "1px" "1rem" "1vh"
+  // strings -> pseudo css units: ".1" "0.1" "1%" "1px" "1rem"
   state: {
     labels: ["magic", "somethingElse"], // Default: [] | always camelCase
     followingId: "_root_0", // Default: rootId
     left: 30, // Default: 0 | alt: horizontal units | like position css
-    // right: 10, // No default | if both left/right are set = automatic width
+    // right: 10, // Default: null | if both left/right are set = automatic width
     top: 20, // Default: 0 | alt: vertical units | like position css
-    // bottom: 80, // No default | if both top/bottom are set = automatic height
+    // bottom: 80, // Default: null | if both top/bottom are set = automatic height
     width: 300, // Default: 100 | overwridden if left/right are both set
-    height: 300, // Default: 50 | overwridden if top/bottom are both set
-    // proportion: 1/4, // No default | overwridden if width/heigth are both set
+    height: 300, // Default: 150 | overwridden if top/bottom are both set
+    // proportion: 1/4, // Default: null | overwridden if width/heigth are both set
     offsetX: 10, // Default: 0 | alt: horizontal units | like translate css
     offsetY: 40, // Default: 0 | alt: vertical units | like translate css
     originX: "0.5", // Default: 0 | alt: horizontal units | like translate q5
     originY: "0.5", // Default: 0 | alt: vertical units | like translate q5
-    // treeVisibility: false, // Default: true | recursive propagation
-    // nodeVisibility: false, // Default: true | shadowed by treeVisibility
+    // treeVisibile: false, // Default: true | recursive propagation
+    // nodeVisibile: false, // Default: true | shadowed by treeVisibile
     treeLayer: 1, // Default: 0 | recursive propagation
     nodeLayer: 2, // Default: 0 | treeLayer + nodeLayer = pseudo css z-index
     painting: "firstAnim", // Default: "_empty" | if debugging Default: "_debug"
@@ -36,7 +35,7 @@ const magicButton = pinturelliNode({
   },
 
   //_______
-  assets: { // Default: {}
+  localAssets: { // Default: {}
     pepo: ["loadImage", "img/pepo.jpg"],
     nsdt: [
       "loadSound",
@@ -79,7 +78,7 @@ const magicButton = pinturelliNode({
 
 ////////////////////////////////////////////
 //
-magicButton.hear("$", "$gesture_started", {
+magicButton.listen("$", "$gesture_started", {
   validate: [
     (state, data) => true,
     (state, data) => true,
@@ -88,8 +87,8 @@ magicButton.hear("$", "$gesture_started", {
 
 ////////////////////////////////////////////
 //
-magicButton.hear("$", "$tapped", {
-  // hear method is to describe the reaction to a primary event.
+magicButton.listen("$", "$tapped", {
+  // listen method is to describe the reaction to a primary event.
   // primary events are the ones emited from emitter-dispatcher, not from eventbus.
   // recieve nameEvent as 1st param, and description as 2nd
 
@@ -99,16 +98,16 @@ magicButton.hear("$", "$tapped", {
     propagation: true, // Default: false | means automatic re-emit this event
   },
 
-  firstValidate: [
-    (state, data) => true,
-    state => true,
-  ],
-
-  firstUpdate: (state, data) => {
+  firstMiddleware: (state, data) => {
     state.riskyPatchByObject({ ok: state.get("gior") + data.get("$gio") });
-    if (data.get("initialTime")) return;
-    data.set("initialTime", performance.now());
+    data.riskyPatch("initialTime", performance.now());
+    return true;
   },
+
+  firstMiddlewares: [
+    (state, data) => true,
+    (state, data) => true,
+  ],
 
   // if configured, automatic propagation...
   // ...happens here (before reactions)
@@ -132,7 +131,7 @@ magicButton.hear("$", "$tapped", {
   reactions: [
     {
       config: {
-        token: "", // Default: `${channelId} ${message} ${node.id} ${repeatNumber}` used by painter
+        token: "", // Default: `${channelId} ${message} ${nodeId} ${repeatNumber}` used by painter
         startAt: 8, // Default: 0 (now)
         riskyRepeat: 3, // Default: 0 (no repeat)
         cancelByToken: ["token", "otherToken"],
@@ -142,7 +141,7 @@ magicButton.hear("$", "$tapped", {
 
       validate: [(state, data) => true],
 
-      update: (state, data) => {
+      update: (state, data, time) => {
         data.set(exampleData, data.get("hi") + "pepo");
         
         const middleX = data.get("$canvas_x") / 2;
@@ -161,8 +160,8 @@ magicButton.hear("$", "$tapped", {
       
       relays: [ // Default: []
         { message: "actived", channels: ["#", "@exampleChannel"] }, // "#" means this-node. channelId always starts with "@"
-        { relayAt: 20, message: "startCrazy" }, // if channels is undefined or empty, default = ["#"]
-        { channels: ["@magicChannel"] }, // if eventName is undefined, default: received eventName. if channels is not empty, "#" is not asumed
+        { relayAt: 20, message: "startCrazy" }, // if channels is undefined or empty, default = ["#"]. relayAt's default = 0
+        { channels: ["@magicChannel"] }, // if message is undefined, default: received message. if channels is not empty, "#" is not asumed
       ],
     },
     {
@@ -208,39 +207,39 @@ magicButton.hear("$", "$tapped", {
 
 ////////////////////////////////////////////
 //
-magicButton.hear("$", "$dragging_held", {
+magicButton.listen("$", "$dragging_held", {
   firstConfig: {},
   firstValidate: [],
   firstUpdate: () => {},
   reaction: {},
   reactions: [{}, {}],
 
-  // a node can hear multiple primary events.
+  // a node can listen multiple primary events.
   // but: each primary event can have only one handler per node.
 });
 
 ////////////////////////////////////////////
 //
-magicButton.hear("magicButton2", "$tapped", {
+magicButton.listen("magicButton2", "$tapped", {
   firstConfig: {},
   firstValidate: [],
   firstUpdate: () => {},
   reaction: {},
 
-  // a node can hear re-emitted messages.
-  // in this case, its hearing to the re-emission of a primary event
+  // a node can listen re-emitted messages.
+  // in this case, its listening to the re-emission of a primary event
   // from "magicButton2" node (probably via automatic propagation).
 });
 
 ////////////////////////////////////////////
 //
-magicButton.hear("someNodeId_or_@someChannel", "doSomeMagic", {
+magicButton.listen("someNodeId_or_@someChannel", "doSomeMagic", {
   firstConfig: {},
   firstValidate: [],
   firstUpdate: () => {},
   reactions: [{}, {}],
 
-  // in this case, its hearing to a message from other node.
+  // in this case, its listening to a message from other node.
   // this is a "spoken message" (not a primary event)
 });
 

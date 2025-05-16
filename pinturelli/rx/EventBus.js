@@ -38,14 +38,14 @@ export default class EventBus {
   
   //____________
   _removeNodeReferences(nodeId) {
-    // search in all channels where this node is hearing
+    // search in all channels where this node is listening
     // not now, maybe async or when are no reactions pending
     // remember: check channels and messages empty maps!!!
     this.#bus.delete(nodeId);
   }
 
   //____________
-  _hear(channelId, message, receiverId, reactionCallback) {
+  _listen(channelId, message, receiverId, reactionCallback) {
     const bus = this.#bus;
 
     // if (channelId === "$") dispatcher.subscribe PENDING
@@ -66,11 +66,11 @@ export default class EventBus {
   }
   
   //____________
-  _stopHearing(channelId, message, receiverId) {
+  _stopListening(channelId, message, receiverId) {
     const channel = this.#bus.get(channelId);
-    if (!channel) return; // no one is hearing this channel
+    if (!channel) return; // no one is listening this channel
     const receiverIds = channel.get(message);
-    if (!receiverIds) return; // no one is hearing this message
+    if (!receiverIds) return; // no one is listening this message
 
     receiverIds.delete(receiverId);
 
@@ -87,9 +87,9 @@ export default class EventBus {
   //____________
   _speak(channelId, message, data) {
     const channel = this.#bus.get(channelId);
-    if (!channel) return; // no one is hearing this channel
+    if (!channel) return; // no one is listening this channel
     const receiverIds = channel.get(message);
-    if (!receiverIds) return; // no one is hearing this message
+    if (!receiverIds) return; // no one is listening this message
 
     const deletedNodeIds = [];
 
@@ -160,13 +160,13 @@ export default class EventBus {
 
     for (const relay of reaction.relays) {
       if (relay.channels.length === 0) {
-        this._speak(receiver.id, data.message, data);
+        this._speak(receiver.nodeId, data.message, data);
         continue;
       }
 
       relay.channels.forEach(channel => {
         if (channel !== "#") this._speak(channel, data.message, data);
-        else this._speak(receiver.id, data.message, data);
+        else this._speak(receiver.nodeId, data.message, data);
       });
     }
   }

@@ -1,10 +1,15 @@
 // import apiErrors from "../debug/devErrorsRootTypes.js";
 // import dbgr from "../debug/validateUiRoot.js";
+import { devMode } from "../debug/_devModeFlag.js";
+import validate from "../debug/validateUiRoot.js";
 
 ////////////////////////////
 //
 export default class UiRoot {
-  #resolution = {};
+  #resolutionX;
+  #resolutionY;
+  #proportion;
+  #allNodes;
   #selectAll;
   #debugging;
   #debug;
@@ -16,36 +21,56 @@ export default class UiRoot {
     // apiErrors.rootConstructor(description);
 
     // public properties
-    this.id = description.id;
+    this.nodeId = description.rootId;
     this.rootId = description.rootId;
     this.UiClass = "UiRoot";
     this.UiGestures = Object.freeze([]);
-    this._id_followers = description._id_followers;
+    this._getFollowerIds = description._getFollowerIds;
 
     // private properties
+    this.#allNodes = description.allNodes;
     this.#selectAll = description.selectAll;
     this.#debugging = description?.debugSelector ?? ""; // path, or array of ids
     this.#debug = this.#debugging !== "";
     this.#SKETCH = SKETCH;
 
     // API State (for compatibility)
-    this._setResolution(description);
     const fakeState = {
-      labels: [],
+      labels: Object.freeze([]),
       followingId: "ARGUZZI",
       left: 0,
+      rigth: 0,
       top: 0,
-      width: 200,
-      height: 300,
+      bottom: 0,
+      width: this.#resolutionX,
+      height: this.#resolutionY,
+      proportion: this.#proportion,
       offsetX: 0,
       offsetY: 0,
       originX: 0,
       originY: 0,
-      treeIsVisibile: true,
-      nodeIsVisibile: false,
+      treeVisibile: true,
+      nodeVisibile: false,
       treeLayer: 0,
       nodeLayer: 0,
     }
+
+    this._passiveManager = Object.freeze({
+      get: key => fakeState?.[key],
+      getByKeys: keys => keys.reduce((acc, key) => {
+        acc[key] = fakeState?.[key];
+        return acc;
+      }, {}),
+      riskyPatch: () => undefined,
+      riskyPatchByObject: () => undefined,
+    });
+
+    this._activeManager = Object.freeze({
+      ...this._passiveManager,
+      set: () => undefined,
+      setByObject: () => undefined,
+    });
+
     this._getPublicState = key => fakeState?.[key];
   }
 
@@ -60,7 +85,7 @@ export default class UiRoot {
       const followedId = node._getPublicState("followingId");
       if (followedId === "ARGUZZI") return;
       const followed = this.#selectAll(`#${followedId}`);
-      acc.unshift(followed._id_followers.indexOf(node.id));
+      acc.unshift(followed._getFollowerIds().indexOf(node.nodeId));
       goToRoot(followed, acc);
       return acc;
     }
@@ -73,27 +98,80 @@ export default class UiRoot {
     if (this.#debugging === "") return false;
     if (this.#debugging === "*") return true;
     if (typeof this.#debugging === "string") {
-      const rootTragets = this.#selectAll(`${this.id} ${this.#debugging}`);
-      return rootTragets.some(targetNode => targetNode.id === nodeId);
+      const rootTragets = this.#selectAll(`${this.nodeId} ${this.#debugging}`);
+      return rootTragets.some(targetNode => targetNode.nodeId === nodeId);
     }
     return this.#debugging.some(targetId => targetId === nodeId);
   }
 
   //____________
-  _setResolution(description, password) {
+  _updateResolution(password, description) {
     if (password !== "everybodycallsmegiorgio") return;
-    // if (this.#debug) dbgr.setResolution(description);
+    if (devMode) validate.updateResolution(description);
 
-    this.#resolution = { x: description?.resolutionX ?? 540 };
+    const lastX = this.#resolutionX;
+    const lastY = this.#resolutionY;
 
-    if (Object.hasOwn(description, "resolutionY")) {
-      this.#resolution.y = description.resolutionY;
+    const {resolutionX, resolutionY, proportion} = description;
+    const hasResolutionX = resolutionX !== null;
+    const hasResolutionY = resolutionY !== null;
+
+    // proportion overwritten
+    if (hasResolutionX && hasResolutionY) {
+      const deltaX = Math.abs(resolutionX - lastX);
+      const deltaY = Math.abs(resolutionY - lastY);
+      if (deltaX < 1 && deltaY < 1) return;
+      this.#resolutionX = resolutionX;
+      this.#resolutionY = resolutionY;
+      this.#proportion = resolutionX / resolutionY;
+      this.#propagateNewSize(resolutionX, resolutionY);
       return;
     }
 
-    if (Object.hasOwn(description, "proportion")) {
-      this.#resolution.y = this.#resolution.x * description.proportion;
+    // proportion mandatory
+    if (proportion === null) {
+      if (devMode) validate.updateResolutionFailed(description);
       return;
     }
+    const deltaP = Math.abs(proportion - this.#proportion);
+
+    // deduce resolutionY
+    if (!hasResolutionY && hasResolutionX) {
+      const deltaX = Math.abs(resolutionX - lastX);
+      if (deltaP < 0.001 && deltaX < 1) return;
+      this.#resolutionX = resolutionX;
+      this.#resolutionY = resolutionX / proportion;
+      this.#proportion = proportion;
+      this.#propagateNewSize(resolutionX, this.#resolutionY);
+      return;
+    }
+
+    // deduce resolutionX
+    if (!hasResolutionX && hasResolutionY) {
+      const deltaY = Math.abs(resolutionY - lastY);
+      if (deltaP < 0.001 && deltaY < 1) return;
+      this.#resolutionX = resolutionY * proportion;
+      this.#resolutionY = resolutionY;
+      this.#proportion = proportion;
+      this.#propagateNewSize(this.#resolutionX, resolutionY);
+      return;
+    }
+  }
+
+  #propagateNewSize(resolutionX, resolutionY) {
+    for (const nodeId of this._getFollowerIds()) {
+
+      const node = this.#allNodes.get(nodeId);
+      const targetStates = node._passiveManager.getByKeys(["right", "bottom"]);
+      const activeStates = {};
+      // if (targetStates?.right) activeStates.push("right");
+      // if (targetStates?.bottom) activeStates.push("bottom");
+
+      // node._activeManager.setByObject({
+        
+      // });
+    }
+
+    this.#SKETCH.resize(resolutionX, resolutionY);
   }
 }

@@ -1,4 +1,5 @@
-import { logger } from "../debug/_debugOutput.js";
+import flag from "../debug/_errorAndLogFlags.js";
+import { genericLogger } from "../debug/_debugOutput.js";
 
 //////////////////////////////
 //
@@ -66,6 +67,6 @@ export default function setNativeListeners(EMITTER) {
   // prevention: disable long touch to select text
 	document.body.style.userSelect = "none";
 
-  // # log here *.*
-  // if (CONFIG.DEBUG) logger(CONFIG, "Native events added.");
+  //____________
+  if (flag.log) genericLogger(`__`, `Native events added`);
 }

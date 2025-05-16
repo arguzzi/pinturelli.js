@@ -3,9 +3,9 @@ import { throwError } from "./_debugOutput.js";
 
 //////////////////////////////
 //
-const duplicatedRegistry = (isInstanced) => {
-  if (!isInstanced) return;
-  throwError(`Registry (constructor)`, `Pinturelli is a singleton, it can't be created multiple times. Check if the script is duplicated somewhere.`);
+const registryConstructor = (secretKey, singletonKey) => {
+  if (secretKey === singletonKey) return;
+  throwError(`Registry (constructor)`, `Pinturelli's memory cannot be instantiated directly. Use "Registry.getSingleton()" to access the instance.`);
 }
 
 //////////////////////////////
@@ -22,7 +22,7 @@ const pinturelliNode = (description, allRoots, allNodesByRoot) => {
   const rootId = description?.rootId;
   const rootNodesMap = allNodesByRoot.get(rootId)
   if (!allRoots.has(rootId) || !rootNodesMap) throwError(`pinturelliNode (1st argument)`, `The description must have a key "root" with `);
-  const nodeId = description?.id;
+  const nodeId = description?.nodeId;
   if (rootNodesMap.has(nodeId)) throwError(`pinturelliNode (1st argument)`, `The description must have a key "root" with `);
 }
 
@@ -71,7 +71,7 @@ const addNode = (description, uiClasses) => {
 //////////////////////////////
 //
 export default {
-  duplicatedRegistry,
+  registryConstructor,
   pinturelliRoot,
   pinturelliNode,
   nodeIdValidator,

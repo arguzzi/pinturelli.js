@@ -17,7 +17,7 @@ class PassiveManager {
 
     this.#updaters = {
       updateDebug: patchedState => {
-        updaters.debug(node.id); // to UiRoot
+        updaters.debug(node.nodeId); // to UiRoot
         if (!Object.hasOwn(patchedState, "followingId")) return;
         updaters.indexChain(); // to UiRoot
       },
@@ -44,7 +44,7 @@ class PassiveManager {
       proportion: "updateSubtree",
       offsetX: "updateSubtree",
       offsetY: "updateSubtree",
-      treeIsVisibile: "updateSubtree",
+      treeVisibile: "updateSubtree",
       treeLayer: "updateLayers",
       nodeLayer: "updateLayers",
     }

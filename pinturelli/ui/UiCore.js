@@ -14,7 +14,7 @@ export default class UiCore {
 	//____________
   // will be freezed!!!
 	constructor(dependencies, description) {
-    apiErrors.nodeConstructor(dependencies, description);
+    // apiErrors.nodeConstructor(dependencies, description);
 
     const {
       UI_ROOT,
@@ -25,12 +25,12 @@ export default class UiCore {
       stateManagers
     } = dependencies;
 
-    // public properties (info)
-    this.id = description.id;
+    // node info
+    this.nodeId = description.nodeId;
     this.rootId = description.rootId;
     this.UiClass = description.UiClass;
     this.UiGestures = Object.freeze(description.gestures);
-    this._id_followers = description._id_followers;
+    this._getFollowerIds = description._getFollowerIds;
     this._paintings = {
       ...description?.paintings,
       _empty: () => {},
@@ -42,14 +42,13 @@ export default class UiCore {
       },
     }
 
-    // private properties
     this.#state = description._privateState;
     this.#assets = description?.assets ?? {};
     this.#rootIndexChain = null;
     this.#DISPATCHER = DISPATCHER;
     this.#EVENT_BUS = EVENT_BUS;
 
-    const updateDebug = () => this.#debug = UI_ROOT._manageDebug(this.id);
+    const updateDebug = () => this.#debug = UI_ROOT._manageDebug(this.nodeId);
     updateDebug();
 
     // API State
@@ -62,15 +61,16 @@ export default class UiCore {
         debug: updateDebug,
         indexChain: () => UI_ROOT._manageIndexChain(thisNode),
         subtree: patchedState => {
-          for (const followerId of thisNode._id_followers) {
+          for (const followerId of thisNode._getFollowerIds()) {
             const follower = ALL_NODES.get(followerId);
-            follower._passiveManager.riskyPatchByObject(riskyPatchedState);
+            follower._passiveManager.riskyPatchByObject(patchedState);
           }
         }
       },
     };
-    this._passiveManager = Object.freeze(new stateManagers[Passive](allArgs));
-    this._activeManager = Object.freeze(new stateManagers[Active](allArgs));
+
+    this._passiveManager = Object.freeze(new stateManagers["Passive"](allArgs));
+    this._activeManager = Object.freeze(new stateManagers["Active"](allArgs));
     this._getPublicState = key => this._passiveManager.get(key); // dev-only
 	}
 
@@ -92,12 +92,12 @@ export default class UiCore {
   // // this._subscriptions = {pubId: [eventName, eventName...], pubId: [], ...}
   // #publish(eventName, data) {
   //   if (this.#debug) dbgr.publishParams(eventName, data);
-  //   this.GLOBAL.EVENT_BUS.publish(this.id, eventName, data);
+  //   this.GLOBAL.EVENT_BUS.publish(this.nodeId, eventName, data);
   // }
 
   // #subscribe(pubId, eventName, callbacks) {
   //   if (this.DEBUG) dbgr.subscribeParams(this, pubId, eventName, callbacks);
-  //   this.GLOBAL.EVENT_BUS.subscribe(pubId, eventName, this.id, callbacks);
+  //   this.GLOBAL.EVENT_BUS.subscribe(pubId, eventName, this.nodeId, callbacks);
 
   //   const subscriptions = this.SUBSCRIPTIONS;
   //   if (!Array.isArray(subscriptions[pubId])) subscriptions[pubId] = [];
@@ -107,14 +107,14 @@ export default class UiCore {
 
   // #unsubscribe(pubId, eventName) {
   //   if (this.DEBUG) dbgr.unsubscribeParams(this, pubId, eventName);
-  //   this.GLOBAL.EVENT_BUS.unsubscribe(pubId, eventName, this.id);
+  //   this.GLOBAL.EVENT_BUS.unsubscribe(pubId, eventName, this.nodeId);
   //   this.SUBSCRIPTIONS.splice(this.SUBSCRIPTIONS.indexOf(eventName), 1);
   // }
 
   #getReaction(channelId, message, reactionInput) {
     const reaction = {};
     const repeatConfig = reactionInput?.riskyRepeat ?? 0;
-    const _info = [channelId, message, this.id, repeatConfig, 0];
+    const _info = [channelId, message, this.nodeId, repeatConfig, 0];
 
     reaction.config = {
       _info,
@@ -144,7 +144,7 @@ export default class UiCore {
   }
 
   //____________
-  hear(channelId, message, descriptionInput) {
+  listen(channelId, message, descriptionInput) {
     const description = {};
     
     description.firstUpdate = descriptionInput?.firstUpdate ?? (() => {});
@@ -156,20 +156,20 @@ export default class UiCore {
     }
 
     description.reactions = [];
-    if (Object.hasOwn(descriptionInput, reaction)) {
+    if (Object.hasOwn(descriptionInput, "reaction")) {
       const reactionInput = descriptionInput.reaction;
       const reaction = this.#getReaction(channelId, message, reactionInput);
       description.reactions.push(reaction);
     }
 
-    if (Object.hasOwn(descriptionInput, reactions)) {
+    if (Object.hasOwn(descriptionInput, "reactions")) {
       for (const reactionInput of descriptionInput.reactions) {
         const reaction = this.#getReaction(channelId, message, reactionInput);
         description.reactions.push(reaction);
       }
     }
 
-    this.#EVENT_BUS._hear(channelId, message, this.id, description);
+    this.#EVENT_BUS._listen(channelId, message, this.nodeId, description);
   }
 
   //____________
