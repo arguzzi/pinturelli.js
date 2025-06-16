@@ -1,6 +1,6 @@
-# Pinturelli v0.1 ~by Giorgio Arguzzi
+# Pinturelli v0.2 ~by Giorgio Arguzzi
 
-Hi. My name is Arguzzi Giorgio, but everybody calls me Giorgio.
+Hi there. My name is Giorgio Arguzzi, but everybody calls me Giorgio.
 
 Pinturelli is a declarative library for drawing UI directly on the HTML canvas using q5.js. No frameworks. No servers. Just static code and lots of multimedia.
 
@@ -18,38 +18,47 @@ on May 1st, 2025
 
 ## Cheat sheet
 
-| prefix | origin selector                      |
-|--------|--------------------------------------|
-| `_`    | root id (camelCase by convention)    |
-| `#`    | node id (camelCase by convention)    |
+| Prefix   | Suffix: origin selector                |
+|----------|----------------------------------------|
+| `_`      | root id (camelCase by convention)      |
+| `#`      | node id (camelCase by convention)      |
 
-| prefix | groups selector                      |
-|--------|--------------------------------------|
-| `>`    | followers of this node               |
-| `<`    | followed by this node                |
-| `~`    | equals (followers of followed node)  |
-| `*`    | subtree (all followers, recursively) |
+| Prefix   | Suffix: group selector                 |
+|----------|----------------------------------------|
+| `>`      | followers of this node                 |
+| `<`      | followed by this node                  |
+| `~`      | equals (followers of followed node)    |
+| `*`      | subtree (all followers, recursively)   |
 
-| prefix | filter selector                      |
-|--------|--------------------------------------|
-| `.`    | label (camelCase by convention)      |
-| `/`    | ui class (always in PascalCase)      |
-| `%`    | ui gesture (always in UPPER_CASE)    |
+| Prefix   | Suffix: filter selector                |
+|----------|----------------------------------------|
+| `.`      | label (camelCase by convention)        |
+| `/`      | ui class (always in PascalCase)        |
+| `%`      | ui gesture (always in UPPER_CASE)      |
 
-| prefix | event bus keys (always camelCase)    |
-|--------|--------------------------------------|
-| `$`    | primary event name (with suffix)     |
-| `$`    | emitter channel (without suffix)     |
-| `#`    | single node channel (node id)        |
-| `@`    | public channel (no convention)       |
+| Prefix   | Suffix: event bus keys                 |
+|----------|----------------------------------------|
+| `$`      | primary event (suffix: semantic name)  |
+| `$`      | primary channel (without suffix)       |
+| `#`      | single node channel (suffix: node id)  |
+| `@`      | public channel (no convention)         |
 
 <br>
 
-> **suffixes:**<br>* must start with a letter.<br>* they may include digits, hyphens (`-`) and underscores (`_`).<br>* whitespace and other special characters are not allowed.
+> **all suffixes:**
+<br>* must start with a letter.
+<br>* they may include digits, hyphens (`-`) and underscores (`_`).
+<br>* whitespace and other special characters are not allowed.
 
 <br>
 
 ## Learning stage:
+
+### *DevTools*
+
+- api errors
+- checkpoints
+- final mode
 
 ### *Registry API*
 
@@ -65,6 +74,7 @@ on May 1st, 2025
 - global assets
   - declaration
 - sketch setup
+  - ignored
 
 ### *Node API*
 
@@ -80,7 +90,7 @@ on May 1st, 2025
   - top
   - width
   - height
-  - nodeIsVisible
+  - nodeVisible
   - nodeLayer
   - painting
 - paintings
@@ -90,10 +100,10 @@ on May 1st, 2025
 ### *Reaction API*
 
 - listen
-  - emitter
+  - primary system
   - event bus
 - channels
-  - emitter channel
+  - primary channel
   - single node channel
 - first config
   - data properties
@@ -109,8 +119,8 @@ on May 1st, 2025
   - snapshots
   - sequences
 - buffer manager
-  - get global assets
-  - q5 createGraphics
+  - createGraphics
+  - getGlobalAssets
 - state manager
   - get
   - set
@@ -127,11 +137,13 @@ on May 1st, 2025
 
 ### *Dev Tools*
 
-- **api errors**
-- **debug mode** 
-- **memory logs**
+- api errors
+- checkpoints
+- final mode
 - **nodes tracker**
 - **events tracker**
+- **memory tracker**
+- **window polution**
 
 ### *Selection*
 
@@ -163,7 +175,7 @@ on May 1st, 2025
   - declaration
   - **lazy loading**
 - sketch setup
-  - **ignored**
+  - ignored
 
 ### *Node API*
 
@@ -185,8 +197,8 @@ on May 1st, 2025
   - **proportion**
   - **offsetX**
   - **offsetY**
-  - **treeIsVisible**
-  - nodeIsVisible
+  - **treeVisible**
+  - nodeVisible
   - **treeLayer**
   - nodeLayer
   - painting
@@ -203,11 +215,11 @@ on May 1st, 2025
 ### *Reaction API*
 
 - listen
-  - emitter
+  - primary system
   - event bus
 - **stopListening**
 - channels
-  - emitter channel
+  - primary channel
   - single node channel
   - **public channel**
 - first config
@@ -233,9 +245,10 @@ on May 1st, 2025
   - snapshots
   - sequences
 - buffer manager
-  - **get local assets**
-  - get global assets
-  - q5 createGraphics
+  - createGraphics
+  - **getLocalAssets**
+  - getGlobalAssets
+  - **loadGlobalAsset**
 - state manager
   - get
   - **getByKeys**
@@ -243,6 +256,8 @@ on May 1st, 2025
   - **riskyPatchByObject**
   - set
   - **setByObject**
+  - **loadLocalAsset**
+  - **deleteLocalAsset**
 - data manager
   - get
   - **getByKeys**

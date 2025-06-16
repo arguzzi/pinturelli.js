@@ -1,111 +1,106 @@
-import flag from "../debug/_errorAndLogFlags.js";
-import { genericLogger } from "../debug/_debugOutput.js";
+import flag from "../debug/_allModesFlags.js";
+import apiErrors from "../debug/apiErrors/setup.js";
+import checkpoints from "../debug/_checkpoints.js";
 
-// import dbgr from "../debug/validateSketch.js";
-// import { logger, checkNodes } from "../debug/_debugOutput.js";
+////////////////////////////
+//
+export default function runSketch(dependencies, description) {
+  const {
+    allNodes,
+    treeInitializer,
+    loadAssets,
+    ignoredSetup,
+    GLOBAL
+  } = dependencies;
 
-//////////////////////////////
-//
-// q5.js global functions
-// 
-// in preload:
-// from initial assets...
-// --------------
-//
-//  node._assets = {
-//    source<STRING>: <ARRAY[<FUNCTION>(load), <FUNCTION/UNDEFINED>(callback)]>,
-//    source<STRING>: <ARRAY[<FUNCTION>(load), <FUNCTION/UNDEFINED>(callback)]>,
-//    source<STRING>: <ARRAY[<FUNCTION>(load), <FUNCTION/UNDEFINED>(callback)]>,
-//  }
-//
-// --------------
-// ...to final assets --> mutation
-// --------------
-// 
-//  node._assets = {
-//    source<STRING>: <OBJECT>(Object_loaded),
-//    source<STRING>: <OBJECT>(Object_loaded),
-//    source<STRING>: <OBJECT>(Object_loaded),
-//  }
-//
-// --------------
-//
-// in setup:
-// canvas creation and general configuration.
-// displayMode("maxed"), noLoop(), clear() are mandatory
-//
-//////////////////////////////
-
-export default function loadAndRunSketch({ allNodesProxy: allNodes, initializer }, description) {
-  const debug = description.memoryLogs;
-
-  const { rootId, containerId } = description;
-  const hasContainer = containerId !== "";
-  const getContainer = () => document.querySelector(`#${containerId}`);
-  const q5 = hasContainer
-  ? new Q5("instance", getContainer())
-  : new Q5("instance");
+  const {
+    rootId,
+    width,
+    height,
+    containerId,
+    q5NoAlphaMode,
+    q5PixelatedMode,
+    q5MaxFrameRate,
+    memoryTracker,
+    sketchSetup,
+  } = description;
 
   //____________
-  // reminder:
-  // node._assets = {source: [load, callback], source: [load, callback], ...}
-  // to--> finalAssets = {source: Object_loaded, source: Object_loaded, ...}
-  q5.preload = function() {
-    if (flag.log) genericLogger(rootId, `Preload execution started`);
-      // dbgr.checkInitialAssets({ ALL_NODES: allNodes });
-      // logger(CONFIG, "Preload execution started."); // # log here *.*
-    
-    initializer();
+  // canvas container
+  const domSelectors = [containerId && `#${containerId}`, `main`, `body`];
+  const container = domSelectors.reduce((element, selector) => (
+    element || document.querySelector(selector)
+  ), null);
+  
+  // instance creation
+  const q5 = new Q5("instance", container);
 
-    const temporalCache = {}; // temporalCache = as finalAssets estructure
-    
-    for (const [_, node] of Object.entries(allNodes)) {
-      
-      // if no assets, skip this node
-      // if (Object.keys(node.ASSETS).length === 0) continue;
-      if (0 === 0) continue;
-
-      // temporal loaded results
-      const finalAssets = {};
-
-      // node._assets[source] = [load, callback]
-      Object.keys(node._assets).forEach(source => {
-        if (temporalCache[source]) {
-          finalAssets[source] = temporalCache[source];
-          return;
-        };
-
-        const loadSystem = node._assets[source];
-        finalAssets[source] = q5.loadSystem[0](loadSystem[1]);
-        temporalCache[source] = finalAssets[source];
-      });
-
-      node._assets = finalAssets;
-    }
-
-    // if (debug) dbgr.checkFinalAssets({ ALL_NODES: allNodes });
+  // instance metadata
+  q5._pinturelli = {
+    container,
+    assetsBySource: new Map(),
   }
 
   //____________
-  q5.setup = function() {
-    const CANVAS = {};
-    CANVAS._elt = q5.createCanvas(
-      // CANVAS.resolutionX,
-      // CANVAS.resolutionY,
-      200, 200,
-      { alpha: true }
-    );
+  q5.setup = async function() {
+    const { assetsBySource } = q5._pinturelli;
 
-    // q5.displayMode(...Q5_CONFIG.displayModeArgs);
-    q5.displayMode(q5.MAXED);
-    // q5.frameRate(Q5_CONFIG.originalFrameRate);
-    q5.frameRate(60);
-    // q5.noLoop();
+    // checkpoint
+    const isTracked = memoryTracker.includes("ASSETS");
+    if (flag.log) checkpoints.setupStarted(rootId, isTracked, assetsBySource);
+
+    // general setup
+    q5.createCanvas(width, height, {alpha: !q5NoAlphaMode});
+    q5.displayMode(q5.MAXED, q5PixelatedMode);
+    q5.frameRate(q5MaxFrameRate);
+    q5.noLoop();
     
-    // # log here *.*
-    // if (!debug) return
-    // logger(CONFIG, "Setup completed.");
-    // checkNodes(allNodes);
+    // tree creation
+    treeInitializer();
+
+    // eager loaded assets
+    const promises = Object.values(allNodes).reduce((acc, node) => {
+      const assetLoaders = node._assetLoaders;
+      if (assetLoaders.length === 0) return acc;
+      acc.push(loadAssets(q5, assetsBySource, assetLoaders, node));
+      return acc;
+    }, []);
+
+    // stops untill all assets are ready
+    await Promise.all(promises);
+    
+    // custom setup
+    for (const [functionName, ...args] of sketchSetup) {
+
+      // prevention
+      if (ignoredSetup.some(prefix => functionName.startsWith(prefix))) {
+        if (flag.err) apiErrors.ignoredFunction(functionName);
+        continue;
+      }
+      const setupFunction = q5?.[functionName];
+      if (typeof setupFunction !== "function") {
+        if (flag.err) apiErrors.unknownFunction(functionName);
+        continue;
+      }
+
+      // no argument
+      if (args.length === 0) {
+        setupFunction();
+        continue;
+      }
+
+      // handle arguments
+      setupFunction(...args.map(arg => {
+        const isString = typeof arg === "string";
+        if (!isString) return arg;
+        const finalArg = q5?.[arg];
+        if (flag.err && !finalArg) apiErrors.unknownArgument(arg);
+        return finalArg;
+      }));
+    }
+
+    // initial render
+    GLOBAL.CAT_PAINTER._firstPaint();
   }
 
   //____________

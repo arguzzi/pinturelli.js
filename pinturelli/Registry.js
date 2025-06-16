@@ -1,51 +1,59 @@
-import { devMode } from "./debug/_devModeFlag.js";
-import validate from "./debug/validateRegistry.js";
+import { devMode } from "./debug/_allModesFlags.js";
+import validate from "./debug/devMode/validateRegistry.js";
 
-import flag from "./debug/_errorAndLogFlags.js";
-import apiErrors from "./debug/apiErrorsRegistry.js";
-import memoryLogs from "./debug/_memoryLogs.js";
+import flag from "./debug/_allModesFlags.js";
+import apiErrors from "./debug/apiErrors/registry.js";
+import checkpoints from "./debug/_checkpoints.js";
 
 ////////////////////////////
 //
 export default class Registry {
-  static #singletonKey = Symbol();
+
+	// singleton pattern
+  static #privateKey = Symbol();
 	static #firstInstance = null;
-	static #rootCount = 0;
+
+	// dependencies
 	#createGlobal = null;
   #stateManagers = null;
   #UiGestures = null;
 	#UiClasses = null;
-	#allRoots = new Map(); // [[rootId: GLOBAL] ...]
+
+	// main memory
+	#allRoots = new Map(); // [[rootId: GLOBAL], [rootId: GLOBAL] ...]
 	#allNodesByRoot = new Map(); // [[rootId: new Map([[nodeId: node] ...])] ...]
   #allRootsIdsByNodeId = new Map(); // [[nodeId: rootId], [nodeId: rootId] ...]
 	#allFollowers = new Map(); // [[nodeId: new Set([nodeId, nodeId, ...])] ...]
 	#wereInitialized = new Set(); // [nodeId, nodeId, ...]
+
+	// garbage collector log
   #cleanupLogger = new FinalizationRegistry(info => {
-    memoryLogs.cleanupEnded(info[0], info[1]); // params: rootId, nodeId
+    checkpoints.cleanupEnded(info[0], info[1]); // info: [rootId, nodeId]
   });
 
 	//____________
-  static getSingleton(imports) {
-    if (devMode) validate.getSingleton(imports);
+  // will be freezed!!!
+  static getSingleton(dependencies) {
+    if (devMode) validate.getSingleton(dependencies);
     if (Registry.#firstInstance) return Registry.#firstInstance;
-    Registry.#firstInstance = new Registry(Registry.#singletonKey, imports);
+    Registry.#firstInstance = new Registry(dependencies, Registry.#privateKey);
     return Registry.#firstInstance;
   }
 
 	//____________
-	constructor(secretKey, imports) {
-    if (devMode) validate.constructorCall(Registry.#singletonKey, secretKey);
-    this.#createGlobal = imports.createGlobal;
-    this.#stateManagers = imports.stateManagers;
-    this.#UiGestures = imports.UiGestures;
-		this.#UiClasses = imports.UiClasses;
+	constructor(dependencies, privateKey) {
+    if (devMode) validate.constructorCall(Registry.#privateKey, privateKey);
+    this.#createGlobal = dependencies.createGlobal;
+    this.#stateManagers = dependencies.stateManagers;
+    this.#UiGestures = dependencies.UiGestures;
+		this.#UiClasses = dependencies.UiClasses;
 	}
 
 	//____________
   // API Root
 	#allNodesProxyCreator(rootId) {
 		const allNodes = this.#allNodesByRoot.get(rootId);
-    if (devMode) validate.allNodesProxyCreator(rootId, allNodes);
+    if (devMode) validate.allNodesProxyCreator(allNodes, rootId);
 		return new Proxy({}, {
 
       // only returns nodes from this root
@@ -88,52 +96,65 @@ export default class Registry {
 	//____________
   // API Root
   pinturelliRoot(description) {
-		const rootId = description.customRootId ?? `_root_${Registry.#rootCount}`;
-    const newDescription = { // default placeholder
-      containerId: null,
-      resolutionX: 540,
-      resolutionY: null,
-      proportion: null,
-      q5WebGpuMode: false,
-      q5PixelatedMode: false,
-      q5NoAlphaMode: false,
-      debugTracker: "",
-      globalAssets: {},
-      sketchSetup: [],
-      ...description, // overwrites placeholder
-      rootId: rootId,
+		const rootCount = this.#allRoots.size + 1;
+		const rootId = description?.customRootId ?? `_root_${rootCount}`; /* 00 */
+
+		// default placeholder
+    const newDescription = { 
+      containerId: null,            /* 01 */
+      resolutionX: 540,             /* 02 */
+      resolutionY: null,            /* 03 */
+      proportion: null,             /* 04 */
+      q5NoAlphaMode: false,         /* 05 */
+      q5PixelatedMode: false,       /* 06 */
+      q5MaxFrameRate: 60,           /* 07 */
+      nodesTracker: [],             /* 08 */
+      eventsTracker: [],            /* 09 */
+      memoryTracker: ["ALL_NODES"], /* 10 */
+      globalAssets: {},             /* 11 */
+      sketchSetup: [],              /* 12 */
+
+			// overwrites placeholder
+      ...description,
+			rootCount,
+      rootId,
       nodeId: rootId,
     }
 
     // types and format validation
-		if (flag.err) apiErrors.pinturelliRoot(this.#allRoots, newDescription);
+		if (flag.err) apiErrors.rootDescription(this.#allRoots, newDescription);
     
-    // memory pt1
-    this.#allNodesByRoot.set(rootId, new Map()); // memory update (1/5)
-    this.#allRootsIdsByNodeId.set(rootId, rootId); // memory update (2/5)
-		this.#allFollowers.set(rootId, new Set()); // memory update (3/5)
+    // memory update pt1
+    this.#allNodesByRoot.set(rootId, new Map()); // (1/5)
+    this.#allRootsIdsByNodeId.set(rootId, rootId); // (2/5)
+		this.#allFollowers.set(rootId, new Set()); // (3/5)
     
-    // new global object
+    // global object dependencies
 		const dependencies = {
-      allNodesProxy: this.#allNodesProxyCreator(rootId),
-		  initializer: () => this.#initializeSeeds(rootId),
-      selectAll: this.pinturelliRiskySelectAll.bind(this),
-    }
-		const GLOBAL = this.#createGlobal(dependencies, {
-      ...newDescription,
+      allNodes: this.#allNodesProxyCreator(rootId),
+      selectAll: path => this.pinturelliRiskySelectAll(path),
+		  treeInitializer: () => this.#initializeTree(rootId),
       _getFollowerIds: () => (
         Object.freeze(Array.from(this.#allFollowers.get(rootId)))
-      )
-    });
+      ),
+    }
 
-    // memory pt2
+    // new global object
+		const GLOBAL = this.#createGlobal(dependencies, newDescription);
+
+    // memory update pt2
     const root = GLOBAL.UI_ROOT;
-    this.#allNodesByRoot.get(rootId).set("_", root); // memory update (4a/5)
-    this.#allNodesByRoot.get(rootId).set(rootId, root); // memory update (4b/5)
-		this.#allRoots.set(rootId, GLOBAL); // memory update (5/5)
-    if (flag.log) memoryLogs.newRootCreated(GLOBAL, rootId);
+    this.#allNodesByRoot.get(rootId).set("_", root); // (4a/5)
+    this.#allNodesByRoot.get(rootId).set(rootId, root); // (4b/5)
+		this.#allRoots.set(rootId, GLOBAL); // (5/5)
 
-    Registry.#rootCount++;
+    // checkpoint
+    if (flag.log) {
+      const isTracked = newDescription.memoryTracker.includes("GLOBAL");
+      checkpoints.newRootCreated(rootId, isTracked, GLOBAL);
+    }
+
+    // response (api root)
     return root;
 	}
 
@@ -141,7 +162,9 @@ export default class Registry {
   // API Node
 	pinturelliNode(description) {
     const { state = {}, ...newDescription } = description;
-    const newState = { // default placeholder
+
+    // default placeholder
+    const newState = {
       labels: [],
       followingId: description.rootId,
       left: 0,
@@ -155,8 +178,8 @@ export default class Registry {
       offsetY: 0,
       originX: 0,
       originY: 0,
-      treeVisibile: true,
-      nodeVisibile: true,
+      treeVisibility: true,
+      nodeVisibility: true,
       treeLayer: 0,
       nodeLayer: 0,
       painting: "_empty",
@@ -165,7 +188,7 @@ export default class Registry {
     }
 
     // types and format validation
-    if (flag.err) apiErrors.pinturelliNode(this.#allNodesByRoot, description);
+    if (flag.err) apiErrors.nodeDescription(this.#allNodesByRoot, description);
 
     // update relations
     const { rootId, nodeId } = description;
@@ -199,7 +222,7 @@ export default class Registry {
 
 		// eager loaded (before initialization)
     const listened = []; // seed memory for primary events
-    const pinturelliNode = this.pinturelliNode.bind(this); // clonator
+    const pinturelliNode = d => this.pinturelliNode(d); // clonator
 		const seed = Object.freeze({
       UiClass: "Block",
       UiGestures: [],
@@ -209,7 +232,7 @@ export default class Registry {
       _getFollowerIds: () => (
         Object.freeze(Array.from(this.#allFollowers.get(rootId)))
       ),
-      _removeReferences: () => undefined, // useless before initialization
+      _removeReferences: () => {}, // useless before initialization
       _listened: listened, // mutation expected via closure
 			listen: (...args) => listened.push(args), // closure (setter)
 			clone: overwriteDescription => pinturelliNode({ // binded registry method
@@ -245,7 +268,7 @@ export default class Registry {
   
 	//____________
   // API Node
-	#initializeSeeds(rootId) {
+	#initializeTree(rootId) {
     if (this.#wereInitialized.has(rootId)) return;
     this.#wereInitialized.add(rootId);
 
@@ -259,8 +282,7 @@ export default class Registry {
 		}
 
 		// relations validation and completed log
-    if (flag.log) memoryLogs.initializeSeeds(allNodes, rootId);
-    // if (flag.err) apiErrors.initializeSeeds(this.#allRoots.get(rootId));
+    if (flag.log) checkpoints.treeInitialized(rootId, true, allNodes);
 	}
 
 	//____________
@@ -491,7 +513,7 @@ export default class Registry {
 			}
 
       if (R_GLOBAL.CONFIG.DEBUG) {
-        memoryLogs.cleanupStarted(rootId);
+        checkpoints.cleanupStarted(rootId);
         this.#cleanupLogger.register(R_GLOBAL.UI_ROOT, [rootId, rootId]);
       }
 
@@ -507,7 +529,7 @@ export default class Registry {
     // seed/node case
     const GLOBAL = this.#allRoots.get(node.rootId);
     if (GLOBAL.CONFIG.DEBUG) {
-      memoryLogs.cleanupStarted(node.nodeId);
+      checkpoints.cleanupStarted(node.nodeId);
       this.#cleanupLogger.register(node, [node.rootId, node.nodeId]);
     }
 

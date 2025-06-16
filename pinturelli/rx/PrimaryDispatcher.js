@@ -1,20 +1,19 @@
 export default class PrimaryDispatcher {
-  #EMITTER;
+  #emitter = null;
 
   //____________
   // public properties will be freezed!!!
-  constructor(GLOBAL) {
+  constructor({ GLOBAL }) {
     this.DEBUG = false;
     this.EVENT_BUS = GLOBAL.EVENT_BUS;
-    this.#EMITTER = null;
   }
 
   // _setRequestedData(message, receiverId, requestedData) {
   // }
 
-  _setupConection({ EMITTER }) {
-    this.#EMITTER = EMITTER;
-    this.#EMITTER.updateContextWatchedNames([
+  _setupConection(emitter) {
+    this.#emitter = emitter;
+    this.#emitter.updateContextWatchedNames([
       {
         $name: "ctx$fullscreen-opened", // PENDING CHANGE "-" TO "_"
         required: "[]",
@@ -45,17 +44,17 @@ export default class PrimaryDispatcher {
       },
     ]);
 
-    this.#EMITTER.updateGesturesWatchedNames([
+    this.#emitter.updateGesturesWatchedNames([
       {
-        $event_name: "$gesture_started",
+        $semantic_name: "$gesture_started",
         required: "[]",
       },
       {
-        $event_name: "$gesture_cancelled",
+        $semantic_name: "$gesture_cancelled",
         required: "[]",
       },
       {
-        $event_name: "$tapped",
+        $semantic_name: "$tapped",
         required: "[$is-active, $cnv-x, $cnv-y]",
       },
     ], false);
@@ -63,13 +62,13 @@ export default class PrimaryDispatcher {
 
   emitterInputTest(_memo, _state){
     console.log("FROM DISPATCHER!!!!\n@> type:", _memo?.event?.type, "\n#> memo:", _memo ,"\n*> state:", _state ,"\n")
-    if (_state.$data.get("$event_name") === "$gesture_started") {
-      this.#EMITTER.updateGesturesActiveNames(["$gesture_started"]);
+    if (_state.$data.get("$semantic_name") === "$gesture_started") {
+      this.#emitter.updateGesturesActiveNames(["$gesture_started"]);
     }
-    else if (_state.$data.get("$event_name") === "$tapped") {
-      this.#EMITTER.updateGesturesActiveNames([]);
+    else if (_state.$data.get("$semantic_name") === "$tapped") {
+      this.#emitter.updateGesturesActiveNames([]);
     }
-    this.EVENT_BUS._primaryDispatcherSpeak(_state.$data);
+    this.EVENT_BUS._emitOnPrimaryChannel(_state.$data);
   }
 
   emitterInput(_e, _state){

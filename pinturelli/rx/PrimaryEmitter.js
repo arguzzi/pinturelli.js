@@ -13,7 +13,7 @@ export default class PrimaryEmitter {
 
   //____________
   // public properties will be freezed!!!
-  constructor(GLOBAL, pipelines) {
+  constructor({ GLOBAL, pipelines }) {
     const { DISPATCHER, SKETCH } = GLOBAL;
     this.DEBUG = false;
     this.DISPATCHER = DISPATCHER;
@@ -68,7 +68,7 @@ export default class PrimaryEmitter {
   updateContextWatchedNames(watchedNames) {
     // if (this.DEBUG) dbgr.watchedNamesParams(watchedNames);
     this.#contextWatchedNames = watchedNames.reduce((acc, obj) => ({
-      ["_watchedName_" + obj.$event_name]: obj.required,
+      ["_watchedName_" + obj.$semantic_name]: obj.required,
       ...acc,
     }), {});
     return 1223455;
@@ -138,7 +138,7 @@ export default class PrimaryEmitter {
   updateGesturesWatchedNames(watchedNames, isPointermoveNeeded = false) {
     if (this.DEBUG) dbgr.watchedNamesParams(watchedNames);
     this.#gesturesWatchedNames = watchedNames.reduce((acc, obj) => ({
-      ["_watchedName_" + obj.$event_name]: obj.required,
+      ["_watchedName_" + obj.$semantic_name]: obj.required,
       ...acc,
     }), {});
     this.#gesturesWatchedNames.isPointermoveNeeded = isPointermoveNeeded;
@@ -148,8 +148,8 @@ export default class PrimaryEmitter {
   updateGesturesActiveNames(activeNames) {
 
     if (this.DEBUG) dbgr.activeNamesParams(activeNames);
-    this.#gesturesActiveNames = activeNames.reduce((acc, $event_name) => ({
-      ["_activeName_" + $event_name]: true,
+    this.#gesturesActiveNames = activeNames.reduce((acc, $semantic_name) => ({
+      ["_activeName_" + $semantic_name]: true,
       ...acc,
     }), {});
   }
@@ -248,13 +248,13 @@ export default class PrimaryEmitter {
 
   //     const activeGestures = emitter.DISPATCHER.getActiveGestures();
   //     const eachActiveGesture = activeGestures.reduce((acc, gesture) => ({
-  //       ["_activeName_" + gesture.$event_name]: gesture.assignedPointerId,
+  //       ["_activeName_" + gesture.$semantic_name]: gesture.assignedPointerId,
   //       ...acc,
   //     }), {});
       
   //     const watchedGestures = emitter.DISPATCHER.getWatchedGestures();
   //     const eachWatchedGesture = watchedGestures.reduce((acc, gesture) => ({
-  //       ["_watchedName_" + gesture.$event_name]: gesture._json_watchedDataNames,
+  //       ["_watchedName_" + gesture.$semantic_name]: gesture._json_watchedDataNames,
   //       ...acc,
   //     }), {});
 

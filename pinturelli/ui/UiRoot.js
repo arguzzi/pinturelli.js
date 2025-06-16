@@ -1,7 +1,5 @@
-// import apiErrors from "../debug/devErrorsRootTypes.js";
-// import dbgr from "../debug/validateUiRoot.js";
-import { devMode } from "../debug/_devModeFlag.js";
-import validate from "../debug/validateUiRoot.js";
+import { devMode } from "../debug/_allModesFlags.js";
+import validate from "../debug/devMode/validateUiRoot.js";
 
 ////////////////////////////
 //
@@ -13,28 +11,31 @@ export default class UiRoot {
   #selectAll;
   #debugging;
   #debug;
-  #SKETCH;
+  #sketch;
   
   //____________
   // will be freezed!!!
-  constructor(SKETCH, description) {
-    // apiErrors.rootConstructor(description);
+  constructor(dependencies, description) {
 
-    // public properties
+    // public info
     this.nodeId = description.rootId;
     this.rootId = description.rootId;
     this.UiClass = "UiRoot";
     this.UiGestures = Object.freeze([]);
-    this._getFollowerIds = description._getFollowerIds;
+    this._getFollowerIds = dependencies._getFollowerIds;
+
+    this._assetsLoaders = description.globalAssets;
+    this._setAssets = () => {}; // pending
 
     // private properties
     this.#allNodes = description.allNodes;
     this.#selectAll = description.selectAll;
     this.#debugging = description?.debugSelector ?? ""; // path, or array of ids
     this.#debug = this.#debugging !== "";
-    this.#SKETCH = SKETCH;
+    this.#sketch = dependencies.sketch;
 
-    // API State (for compatibility)
+    //____________
+    // API State (fake, just for compatibility)
     const fakeState = {
       labels: Object.freeze([]),
       followingId: "ARGUZZI",
@@ -49,28 +50,46 @@ export default class UiRoot {
       offsetY: 0,
       originX: 0,
       originY: 0,
-      treeVisibile: true,
-      nodeVisibile: false,
+      treeVisibility: true,
+      nodeVisibility: false,
       treeLayer: 0,
       nodeLayer: 0,
     }
 
+    //____________
+    // API State (fake)
     this._passiveManager = Object.freeze({
       get: key => fakeState?.[key],
       getByKeys: keys => keys.reduce((acc, key) => {
         acc[key] = fakeState?.[key];
         return acc;
       }, {}),
-      riskyPatch: () => undefined,
-      riskyPatchByObject: () => undefined,
+      riskyPatch: () => {},
+      riskyPatchByObject: () => {},
+      loadLocalAsset: () => {},
+      deleteLocalAsset: () => {},
     });
 
+    //____________
+    // API State (fake)
     this._activeManager = Object.freeze({
       ...this._passiveManager,
-      set: () => undefined,
-      setByObject: () => undefined,
+      set: () => {},
+      setByObject: () => {},
     });
 
+    //____________
+    // API State (fake)
+    this._hiddenManager = Object.freeze({
+      _setIdxChain: () => {},
+      _getIdxChain: () => [0],
+      _getPosition: () => ({ x: 0, y: 0 }),
+      _getVisibility: () => false,
+      _getZLayer: () => 0,
+    });
+
+    //____________
+    // API State (fake)
     this._getPublicState = key => fakeState?.[key];
   }
 
@@ -112,7 +131,7 @@ export default class UiRoot {
     const lastX = this.#resolutionX;
     const lastY = this.#resolutionY;
 
-    const {resolutionX, resolutionY, proportion} = description;
+    const { resolutionX, resolutionY, proportion } = description;
     const hasResolutionX = resolutionX !== null;
     const hasResolutionY = resolutionY !== null;
 
@@ -172,6 +191,6 @@ export default class UiRoot {
       // });
     }
 
-    this.#SKETCH.resize(resolutionX, resolutionY);
+    this.#sketch.resize(resolutionX, resolutionY);
   }
 }

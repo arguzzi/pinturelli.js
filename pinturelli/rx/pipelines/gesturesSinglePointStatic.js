@@ -12,7 +12,7 @@ const tapEnded = (_memo, _state) => {
 
   _state.exitCode = EXIT_CODE.COMPLETED;
   const $data = new Map([_state.$data]);
-  $data.set("$event_name", "$tapped");
+  $data.set("$semantic_name", "$tapped");
   $data.set("$is-active", false);
   $data.set("$cnv_x", _state._cnv_x);
   $data.set("$cnv_y", _state._cnv_y);

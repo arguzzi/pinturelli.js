@@ -15,19 +15,17 @@ const magicButton = pinturelliNode({
   state: {
     labels: ["magic", "somethingElse"], // Default: [] | always camelCase
     followingId: "_root_0", // Default: rootId
-    left: 30, // Default: 0 | alt: horizontal units | like position css
-    // right: 10, // Default: null | if both left/right are set = automatic width
-    top: 20, // Default: 0 | alt: vertical units | like position css
-    // bottom: 80, // Default: null | if both top/bottom are set = automatic height
     width: 300, // Default: 100 | overwridden if left/right are both set
     height: 300, // Default: 150 | overwridden if top/bottom are both set
     // proportion: 1/4, // Default: null | overwridden if width/heigth are both set
+    top: 20, // Default: 0 | alt: vertical units | like position css
+    // bottom: 80, // Default: null | if both top/bottom are set = automatic height
+    left: 30, // Default: 0 | alt: horizontal units | like position css
+    // right: 10, // Default: null | if both left/right are set = automatic width
     offsetX: 10, // Default: 0 | alt: horizontal units | like translate css
     offsetY: 40, // Default: 0 | alt: vertical units | like translate css
-    originX: "0.5", // Default: 0 | alt: horizontal units | like translate q5
-    originY: "0.5", // Default: 0 | alt: vertical units | like translate q5
-    // treeVisibile: false, // Default: true | recursive propagation
-    // nodeVisibile: false, // Default: true | shadowed by treeVisibile
+    // treeVisibility: false, // Default: true | recursive propagation
+    // nodeVisibility: false, // Default: true | shadowed by treeVisibility
     treeLayer: 1, // Default: 0 | recursive propagation
     nodeLayer: 2, // Default: 0 | treeLayer + nodeLayer = pseudo css z-index
     painting: "firstAnim", // Default: "_empty" | if debugging Default: "_debug"
@@ -55,23 +53,23 @@ const magicButton = pinturelliNode({
       buffer.rect(0, 0, state.get("width"), state.get("height"));
     },
 
-    firstAnim: (buffer, state, data, time) => {
+    firstAnim: (q5, gr, st, da, ti) => {
       buffer.translate(...state.get("firstPosition"));
     },
     
-    mainLoop: (buffer, state, data, time) => {
+    mainLoop: (q5, gr, st, da, ti) => {
     },
 
-    tappedAnim: (buffer, state, data, time) => {
+    tappedAnim: (q5, gr, st, da, ti) => {
     },
 
-    pressedLoop: (buffer, state, data, time) => {
+    pressedLoop: (q5, gr, st, da, ti) => {
     },
 
-    draggedLoop: (buffer, state, data, time) => {
+    draggedLoop: (q5, gr, st, da, ti) => {
     },
     
-    crazyAnim: (buffer, state, data, time) => {
+    crazyAnim: (q5, gr, st, da, ti) => {
     },
   },
 });

@@ -1,4 +1,4 @@
-import flag from "../debug/_errorAndLogFlags.js";
+import flag from "../debug/_allModesFlags.js";
 import { genericLogger } from "../debug/_debugOutput.js";
 
 //////////////////////////////
@@ -16,11 +16,12 @@ import { genericLogger } from "../debug/_debugOutput.js";
 //
 //////////////////////////////
 
-export default function setNativeListeners(EMITTER) {
+export default function setNativeListeners({ GLOBAL }) {
+  const emitter = GLOBAL.EMITTER;
   
   //____________
   // gestures inputs
-  const gesturesHandler = (_e) => EMITTER.gesturesInput(_e);
+  const gesturesHandler = (_e) => emitter.gesturesInput(_e);
   document.addEventListener("pointerdown", gesturesHandler);
   document.addEventListener("pointermove", gesturesHandler);
   document.addEventListener("pointercancel", gesturesHandler);
@@ -28,7 +29,7 @@ export default function setNativeListeners(EMITTER) {
   
   //____________
   // context inputs
-  const contextHandler = (_e) => EMITTER.contextInput(_e);
+  const contextHandler = (_e) => emitter.contextInput(_e);
 	document.addEventListener("fullscreenchange", contextHandler);
   const vvpt = !!window?.visualViewport;
   if (vvpt) window.visualViewport.addEventListener("resize", contextHandler);
@@ -68,5 +69,5 @@ export default function setNativeListeners(EMITTER) {
 	document.body.style.userSelect = "none";
 
   //____________
-  if (flag.log) genericLogger(`__`, `Native events added`);
+  // if (flag.log) genericLogger(rootId, `Native events added`);
 }

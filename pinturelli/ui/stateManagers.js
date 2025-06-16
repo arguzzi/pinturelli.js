@@ -3,6 +3,7 @@
 ////////////////////////////
 //
 class PassiveManager {
+  #sketch;
   #node;
   #state;
   #updaters;
@@ -10,13 +11,14 @@ class PassiveManager {
 
   //____________
   // will be freezed!!!
-  constructor({ node, state, painter, updaters }) {
+  constructor({ sketch, node, state, painter, updaters }) {
+    this.#sketch = sketch;
     this.#node = node;
     this.#state = state;
     this._painter = painter;
 
     this.#updaters = {
-      updateDebug: patchedState => {
+      updateChain: patchedState => {
         updaters.debug(node.nodeId); // to UiRoot
         if (!Object.hasOwn(patchedState, "followingId")) return;
         updaters.indexChain(); // to UiRoot
@@ -33,18 +35,23 @@ class PassiveManager {
     }
 
     this.#keysSideEffects = {
-      labels: "updateDebug",
-      followingId: "updateDebug",
-      left: "updateSubtree",
-      right: "updateSubtree",
-      top: "updateSubtree",
-      bottom: "updateSubtree",
+      labels: "updateChain",
+      followingId: "updateChain",
+
       width: "updateSubtree",
       height: "updateSubtree",
       proportion: "updateSubtree",
+      
+      top: "updateSubtree",
+      bottom: "updateSubtree",
+      left: "updateSubtree",
+      right: "updateSubtree",
       offsetX: "updateSubtree",
       offsetY: "updateSubtree",
-      treeVisibile: "updateSubtree",
+
+      treeVisibility: "updateSubtree",
+      nodeVisibility: "updateSubtree",
+
       treeLayer: "updateLayers",
       nodeLayer: "updateLayers",
     }
@@ -84,7 +91,6 @@ class PassiveManager {
   riskyPatch(key, value) {
     // apiErrors.riskyPatch(this.#state, key, value);
     const newState = { key, value };
-    this._painter.notifyPatch(this.#node, newState);
     this.#state[key] = this.#cloneIfNeeded(value);
 
     const sideEffect = this.#keysSideEffects?.[key];
@@ -97,7 +103,6 @@ class PassiveManager {
   riskyPatchByObject(newState) {
     // apiErrors.riskyPatchByObject(this.#state, newState);
     const sideEffects = new Map();
-    this._painter.notifyPatch(this.#node, newState);
     for (const [key, value] of Object.entries(newState)) {
       this.#state[key] = this.#cloneIfNeeded(value);
       
@@ -111,6 +116,16 @@ class PassiveManager {
     for (const [sideEffect, patchedState] of sideEffects) {
       this.#updaters?.[sideEffect](patchedState);
     }
+  }
+
+  //____________
+  // API Assets
+  loadLocalAsset(name, loader) {
+  }
+
+  //____________
+  // API Assets
+  deleteLocalAsset(name) {
   }
 }
 
@@ -140,7 +155,59 @@ class ActiveManager extends PassiveManager {
 
 ////////////////////////////
 //
+class HiddenManager extends PassiveManager {
+  #idxChain;
+  #bufferBox;
+  
+  // will be freezed!!!
+  constructor(args) {
+    super(args);
+    this.#idxChain = [0];
+    this.bufferBox = {
+      width: 0,
+      height: 0,
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      offsetX: 0,
+      offsetY: 0,
+    }
+  }
+
+  //____________
+  _setIdxChain() {
+  }
+
+  //____________
+  _getIdxChain() {
+    return [ ...this.#idxChain ];
+  }
+
+  //____________
+  _setBufferBox() {
+  }
+
+  //____________
+  _getBufferBox() {
+    return { ...this.#bufferBox };
+  }
+
+  //____________
+  _getVisibility() {
+    return this.get("treeVisibility") && this.get("nodeVisibility");
+  }
+
+  //____________
+  _getZLayer() {
+    return this.get("treeLayer") + this.get("nodeLayer");
+  }
+}
+
+////////////////////////////
+//
 export default {
   Passive: PassiveManager,
   Active: ActiveManager,
+  Hidden: HiddenManager,
 }

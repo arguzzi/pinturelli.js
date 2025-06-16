@@ -27,7 +27,7 @@ const pointerdownPipeline = (_memo, _state) => {
   console.log("--3:", _memo.event.type);
   _state.exitCode = EXIT_CODE.COMPLETED;
   const $data = new Map([_state.$data]);
-  $data.set("$event_name", "$gesture_started");
+  $data.set("$semantic_name", "$gesture_started");
   $data.set("$cnv_x", _state._cnv_x);
   $data.set("$cnv_y", _state._cnv_y);
   _memo._gesturesOutput(_memo, { ..._state, $data });
@@ -154,7 +154,7 @@ const gesturesPipelinesIndex = (_memo, _state) => {
     
     // @> gesture cancelled
     const $data = new Map([_state.$data]);
-    $data.set("$event_name", "$gesture-cancelled");
+    $data.set("$semantic_name", "$gesture-cancelled");
     $data.set("$cancelled_names", eventName);
     $data.set("$cnv-x", _state._cnv_x);
     $data.set("$cnv-y", _state._cnv_y);

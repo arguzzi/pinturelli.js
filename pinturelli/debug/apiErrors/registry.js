@@ -1,27 +1,30 @@
-import { typedParams } from "./_typeValidators.js";
-import { throwError } from "./_debugOutput.js";
-import { validateState } from "./apiErrorsState.js";
-import { validateAssets, validatePaintings } from "./apiErrorsLoading.js";
-import UiClasses from "../ui/UiClasses.js";
-import UiGestures from "../ui/UiGestures.js";
+import { typedParams } from "../_typeValidators.js";
+import { throwError } from "../_debugOutput.js";
 
-//////////////////////////////
+import { stateFormat } from "./state.js";
+import { assetsFormat, paintingsFormat } from "./loads.js";
+
+import UiClasses from "../../ui/UiClasses.js";
+import UiGestures from "../../ui/UiGestures.js";
+
+////////////////////////////
 //
-const pinturelliRoot = (allRoots, description) => {
-  const { rootId, globalAssets, sketchSetup } = description;
+const rootDescription = (allRoots, description) => {
+	const { rootId, globalAssets, sketchSetup } = description;
 
-  // id
+  // root id
   typedParams.string(`API pinturelliRoot (customRootId)`, rootId);
   if (!/^_[A-Za-z][A-Za-z0-9_-]*$/.test(rootId)) {
-    throwError(`API pinturelliRoot`, `"customRootId" must start with "_", then a letter. Subsequent characters, if any, must be letters, digits, hyphens (-) or underscores (_). Invalid id: "${rootId}"`);
+    throwError(`API pinturelliRoot (customRootId)`, `The value of "customRootId" must start with "_", then a letter. Subsequent characters, if any, must be letters, digits, hyphens (-) or underscores (_). Invalid id: "${rootId}"`);
   }
   if (allRoots.has(rootId)) {
     throwError(`API pinturelliRoot (customRootId)`, `The id "${rootId}" is already in use.`);
   }
   
   // info
-  typedParams.plainObject(`API pinturelliRoot (description for "${rootId}")`, description);
+  typedParams.plainObject(`API pinturelliRoot (description of "${rootId}")`, description);
   const descriptionKeys = Object.keys(description);
+	const nullableKeys = ["customRootId", "resolutionX", "resolutionY", "proportion"];
   const typeTargetsMap = new Map([
     ["boolean", ["q5WebGpuMode", "q5PixelatedMode", "q5NoAlphaMode"]],
     ["number", ["resolutionX", "resolutionY", "proportion"]],
@@ -33,11 +36,13 @@ const pinturelliRoot = (allRoots, description) => {
       return acc;
     }, []);
     if (typedKeys.length === 0) continue;
-    typedParams[typeTarget](`API pinturelliRoot (description for "${rootId}")`, ...typedKeys.map(k => description[k]));
+		const notNullableKeys = typedKeys.filter(k => !nullableKeys.includes(k));
+		const a = notNullableKeys.map(k => description[k]);
+    typedParams[typeTarget](`API pinturelliRoot (description for "${rootId}")`, ...a);
   }
   
   // assets
-  validateAssets(globalAssets, rootId, true);
+  assetsFormat(globalAssets, rootId, true);
 
   // setup
   typedParams.array(`API pinturelliRoot (sketchSetup)`, sketchSetup, ...sketchSetup);
@@ -47,9 +52,9 @@ const pinturelliRoot = (allRoots, description) => {
   }
 }
 
-//////////////////////////////
+////////////////////////////
 //
-const pinturelliNode = (allNodesByRoot, description) => {
+const nodeDescription = (allNodesByRoot, description) => {
 
   // root id
   const allNodes = allNodesByRoot.get(description?.rootId);
@@ -92,18 +97,18 @@ const pinturelliNode = (allNodesByRoot, description) => {
   }
   
   // state
-  validateState(description.state, nodeId, description.rootId);
+  stateFormat(description.state, nodeId, description.rootId);
 
   // assets
-  validateAssets(description.localAssets, nodeId, false);
+  assetsFormat(description.localAssets, nodeId, false);
 
   // paintings
-  validatePaintings(description.paintings);
+  paintingsFormat(description.paintings);
 }
 
-//////////////////////////////
+////////////////////////////
 //
 export default {
-  pinturelliRoot,
-  pinturelliNode,
+	rootDescription,
+	nodeDescription,
 }

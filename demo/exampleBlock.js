@@ -4,14 +4,14 @@ const exampleBlock = pinturelliNode({
 
   //_______
   nodeId: "#exampleBlock", // Required
-  rootId: "_root_0", // Required
+  rootId: "_myFirstRoot", // Required
   UiClass: "/Block", // Default: "/Block"
   UiGestures: ["%TAP"], // Default: []
 
   //_______
   state: {
     labels: [], // Default: []
-    followingId: "_root_0", // Default: rootId
+    followingId: "_myFirstRoot", // Default: rootId
     left: 30, // Default: 0
     right: null,
     top: 20, // Default: 0
@@ -23,8 +23,8 @@ const exampleBlock = pinturelliNode({
     offsetY: 40, // Default: 0
     originX: 0,
     originY: 0,
-    treeVisibile: true, 
-    nodeVisibile: true,
+    treeVisibility: true, 
+    nodeVisibility: true,
     treeLayer: 1, // Default: 0
     nodeLayer: 1, // Default: 0
     painting: "myFirstBackground", // Default: "_empty"

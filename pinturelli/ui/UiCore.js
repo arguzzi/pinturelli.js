@@ -1,5 +1,8 @@
-import apiErrors from "../debug/devErrorsNodeTypes.js";
-import dbgr from "../debug/validateUiCore.js";
+import { devMode } from "../debug/_allModesFlags.js";
+import validate from "../debug/devMode/validateUiCore.js";
+
+import flag from "../debug/_allModesFlags.js";
+import apiErrors from "../debug/apiErrors/node.js";
 
 ////////////////////////////
 //
@@ -25,14 +28,18 @@ export default class UiCore {
       stateManagers
     } = dependencies;
 
-    // node info
+    // public info
     this.nodeId = description.nodeId;
     this.rootId = description.rootId;
     this.UiClass = description.UiClass;
     this.UiGestures = Object.freeze(description.gestures);
+
+    // 
     this._getFollowerIds = description._getFollowerIds;
+    this._assetsLoaders = description.localAssets;
+    this._setAssets = () => {}; // pending
     this._paintings = {
-      ...description?.paintings,
+      ...description.paintings,
       _empty: () => {},
       _debug: (q5, state) => {
         q5.strokeWeight(2);
@@ -41,6 +48,7 @@ export default class UiCore {
         q5.rect(0, 0, state.get("width"), state.get("height"));
       },
     }
+
 
     this.#state = description._privateState;
     this.#assets = description?.assets ?? {};
@@ -69,6 +77,7 @@ export default class UiCore {
       },
     };
 
+    this._hiddenManager = Object.freeze(new stateManagers["Hidden"](allArgs));
     this._passiveManager = Object.freeze(new stateManagers["Passive"](allArgs));
     this._activeManager = Object.freeze(new stateManagers["Active"](allArgs));
     this._getPublicState = key => this._passiveManager.get(key); // dev-only

@@ -1,4 +1,6 @@
-import { setApiErrors, setMemoryLogs } from "./debug/_errorAndLogFlags.js";
+import { setApiErrors, setCheckpoints } from "./debug/_allModesFlags.js";
+import { firstLog } from "./debug/_debugOutput.js";
+
 import createGlobal from "./global/createGlobal.js";
 import stateManagers from "./ui/stateManagers.js";
 import UiGestures from "./ui/UiGestures.js";
@@ -17,9 +19,11 @@ const reg = Object.freeze(Registry.getSingleton({
 ////////////////////////////
 //
 const { searchParams } = new URL(import.meta.url);
-const finalMode = searchParams.has("finalMode");
-setApiErrors(!finalMode && !searchParams.has("noErrors"));
-setMemoryLogs(!finalMode && !searchParams.has("noLogs"));
+const flagDebugMode = !searchParams.has("finalMode");
+const flagApiErrors = flagDebugMode && !searchParams.has("noErrors");
+setCheckpoints(flagDebugMode);
+setApiErrors(flagApiErrors);
+firstLog(flagDebugMode, flagApiErrors);
 
 // global scope, as script for development: 
 // <script src="./pinturelli.js" type="module"></script>
@@ -34,8 +38,6 @@ if (!searchParams.has("noWindow")) {
   window.pinturelliRiskySelectAll = p => reg.pinturelliRiskySelectAll(p);
   window.pinturelliRiskyDestroy = p => reg.pinturelliRiskyDestroy(p);
   window.pinturelliRiskyDestroyAll = p => reg.pinturelliRiskyDestroyAll(p);
-  window._setPinturelliErrors = flagValue => setApiErrors(flagValue);
-  window._setPinturelliLogs = flagValue => setMemoryLogs(flagValue);
 }
 
 // named exports, as module for development:
@@ -50,8 +52,6 @@ export const pinturelliRiskySelect = p => reg.pinturelliRiskySelect(p);
 export const pinturelliRiskySelectAll = p => reg.pinturelliRiskySelectAll(p);
 export const pinturelliRiskyDestroy = p => reg.pinturelliRiskyDestroy(p);
 export const pinturelliRiskyDestroyAll = p => reg.pinturelliRiskyDestroyAll(p);
-export const _setPinturelliErrors = flagValue => setApiErrors(flagValue);
-export const _setPinturelliLogs = flagValue => setMemoryLogs(flagValue);
 
 // instanced export, as module for development:
 // import pinturelli from "./pinturelli.js?noWindow";
@@ -66,6 +66,4 @@ export default {
   riskySelectAll: p => reg.pinturelliRiskySelectAll(p),
   riskyDestroy: p => reg.pinturelliRiskyDestroy(p),
   riskyDestroyAll: p => reg.pinturelliRiskyDestroyAll(p),
-  _setErrors: flagValue => setApiErrors(flagValue),
-  _setLogs: flagValue => setMemoryLogs(flagValue),
 };

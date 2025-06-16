@@ -1,97 +1,61 @@
 import { throwError } from "./_debugOutput.js";
 
 //////////////////////////////
+//
 // list of supported types
-const supportedTypes = [
+const supportedTypes = Object.freeze([
   "undefined",
   "boolean",
-  "number",
+  "number", // not infinite or nan
   "string",
-  "object",
-  "plainObject",
-  "array",
-  "function"
-];
+  "symbol",
+  "null", // is null
+  "object", // not null
+  "plainObject", // not null and prototype = object
+  "array", // is array
+  "map", // instance of map
+  "set", // instance of set
+  "promise", // instance of promise
+  "function",
+]);
 
 //////////////////////////////
-// higher-order function for generic validations (currying)
-
-/**
- * create a function that validates some arguments
- * and returns the true if any of them does not match
- * the expected type, or returns false all arguments are valid
- */
-const createAreNot = type => (...args) => {
-  if (type === "plainObject") {
-    for (let i = 0; i < args.length; i++) {
-      if (typeof args[i] !== "object" || args[i] === null) return true;
-      if (Object.getPrototypeOf(args[i]) !== Object.prototype) return true;
-    }
-    return false;
+// 
+const specialValidator = (() => {
+  const validators = {
+    number: arg => (
+      typeof arg === "number" &&
+      Number.isFinite(arg)
+    ),
+    null: arg => arg === null,
+    object: arg => (
+      typeof arg === 'object' &&
+      arg !== null
+    ),
+    plainObject: arg => (
+      typeof arg === "object" &&
+      arg !== null &&
+      Object.getPrototypeOf(arg) === Object.prototype
+    ),
+    array: Array.isArray,
+    map: arg => arg instanceof Map,
+    set: arg => arg instanceof Set,
+    promise: arg => arg instanceof Promise,
   }
 
-  if (type === "array") {
-    for (let i = 0; i < args.length; i++) {
-      if (!Array.isArray(args[i])) return true;
-    }
-    return false;
-  }
-
-  for (let i = 0; i < args.length; i++) {
-    if (typeof args[i] !== type) return true;
-  }
-  return false;
-};
-
-/**
- * create a function that validates some arguments
- * and returns the index of the first one that does not match
- * the expected type, or returns -1 if all arguments are valid
- */
-const createAreNotAt = type => (...args) => {
-  if (type === "plainObject") {
-    for (let i = 0; i < args.length; i++) {
-      if (typeof args[i] !== "object" || args[i] === null) return i;
-      if (Object.getPrototypeOf(args[i]) !== Object.prototype) return i;
-    }
-    return -1;
-  }
-
-  if (type === "array") {
-    for (let i = 0; i < args.length; i++) {
-      if (!Array.isArray(args[i])) return i;
-    }
-    return -1;
-  }
-
-  for (let i = 0; i < args.length; i++) {
-    if (typeof args[i] !== type) return i;
-  }
-  return -1;
-};
-
-/**
- * create a function that validates some arguments
- * and throws an error if any of them is not of the expected type
- */
-const createTypedParams = (type, fn_areNotAt) => (origin, ...args) => {
-  const invalidIndex = fn_areNotAt(...args);
-  if (invalidIndex === -1) return;
-  throwError(origin, `This input only accepts values of type===${type}. Invalid parameter at index ${invalidIndex}: "${args[invalidIndex]}"`);
-};
+  return Object.entries(validators).reduce((acc, [type, validator]) => {
+    acc[type] = (...args) => args.findIndex(arg => !validator(arg));
+    return acc;
+  }, {});
+})();
 
 //////////////////////////////
-// validators for each supported type
-
-/**
- * @example
- * areNot.boolean(arg0, arg1, arg2, etc);
- * // returns true if any argument is non-boolean, and false if not
- */
-export const areNot = supportedTypes.reduce((acc, type) => {
-  acc[type] = createAreNot(type);
-  return acc;
-}, {});
+//
+const createAreNotAt = targetType => (...args) => {
+  const isSpecial = Object.hasOwn(specialValidator, targetType);
+  if (isSpecial) return specialValidator[targetType](...args);
+  return args.findIndex(arg => typeof arg !== targetType);
+}
 
 /**
  * @example
@@ -99,10 +63,28 @@ export const areNot = supportedTypes.reduce((acc, type) => {
  * // returns the index of the first argument that is not a boolean,
  * // or -1 if all arguments are booleans.
  */
-export const areNotAt = supportedTypes.reduce((acc, type) => {
-  acc[type] = createAreNotAt(type);
+export const areNotAt = supportedTypes.reduce((acc, targetType) => {
+  acc[targetType] = createAreNotAt(targetType);
   return acc;
 }, {});
+
+/**
+ * @example
+ * areNot.boolean(arg0, arg1, arg2, etc);
+ * // returns true if any argument is non-boolean, and false if not
+ */
+export const areNot = supportedTypes.reduce((acc, targetType) => {
+  acc[targetType] = (...args) => areNotAt[targetType](...args) === -1;
+  return acc;
+}, {});
+
+//////////////////////////////
+//
+const createTypedParams = targetType => (origin, ...args) => {
+  const invalidIndex = areNotAt[targetType](...args);
+  if (invalidIndex === -1) return;
+  throwError(origin, `This input only accepts values of type: "${targetType}". Invalid parameter at index ${invalidIndex}: "${args[invalidIndex]}"`);
+}
 
 /**
  * @example
@@ -111,8 +93,8 @@ export const areNotAt = supportedTypes.reduce((acc, type) => {
  * // otherwise, throws an error immediately for the first non-boolean value,
  * // specifying the "origin" of the call and the exact invalid argument.
  */
-export const typedParams = supportedTypes.reduce((acc, type) => {
-  acc[type] = createTypedParams(type, areNotAt[type]);
+export const typedParams = supportedTypes.reduce((acc, targetType) => {
+  acc[targetType] = createTypedParams(targetType);
   return acc;
 }, {});
 
@@ -122,4 +104,4 @@ export default {
   areNot,
   areNotAt,
   typedParams,
-};
+}

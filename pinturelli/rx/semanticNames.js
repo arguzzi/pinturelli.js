@@ -22,7 +22,7 @@
 
 export default Object.freeze({
   singlePointGestures: Object.freeze({
-    STATIC: Object.freeze([ // data: $event_name $canvas_x $canvas_y
+    STATIC: Object.freeze([ // data: $native_event $semantic_name $canvas_x $canvas_y
       
       // all gestures
       "$gesture_started",
@@ -69,7 +69,7 @@ export default Object.freeze({
       "$throwing_inertia_ended",
     ]),
 
-    DYNAMIC: Object.freeze([ // data: $event_name $canvas_x $canvas_y
+    DYNAMIC: Object.freeze([ // data: $native_event $semantic_name $canvas_x $canvas_y
 
       // hold
       "$holding", // +data: $is_validated $validation_percentage
@@ -132,7 +132,7 @@ export default Object.freeze({
   }),
 
   multiPointGestures: Object.freeze({
-    STATIC: Object.freeze([ // data: $event_name $multi_pointers (array of objects, each one with "$event", "$canvas_x" and "$canvas_y" properties) 
+    STATIC: Object.freeze([ // data: $native_event $semantic_name $multi_pointers (array of objects, each one with "$event", "$canvas_x" and "$canvas_y" properties) 
       
       // tap (multi fingers)
       "$multi_tapped",
@@ -177,7 +177,7 @@ export default Object.freeze({
       "$multi_swiping_inertia_ended",
     ]),
     
-    DYNAMIC: Object.freeze([ // data: $event_name $multi_pointers (array of objects with "$event", "$canvas_x" and "$canvas_y" properties)
+    DYNAMIC: Object.freeze([ // data: $native_event $semantic_name $multi_pointers (array of objects with "$event", "$canvas_x" and "$canvas_y" properties)
       
       // hold (multi fingers)
       "$multi_holding", // +data: $multi_are_validated $multi_validation_percentage
@@ -212,24 +212,24 @@ export default Object.freeze({
   }),
 
   navigation: Object.freeze({
-    STATIC: Object.freeze([ // data: $event_name $navg_url
+    STATIC: Object.freeze([ // data: $native_event $semantic_name $navg_url
       "$navg_assets_loaded", // +data: $navg_time_taken
       "$navg_changed_state",
       "$navg_changed_hash",
     ]), 
 
-    DYNAMIC: Object.freeze([ // data: $event_name
+    DYNAMIC: Object.freeze([ // data: $native_event $semantic_name
       "$navg_loading_assets", // +data: $navg_actual_time $navg_aprox_total_time $navg_aprox_ratio_time
     ])
   }),
 
   context: Object.freeze({
-    STATIC: Object.freeze([ // data: $event_name
+    STATIC: Object.freeze([ // data: $native_event $semantic_name
       "$cntx_fullscreen_opened",
       "$cntx_fullscreen_closed",
     ]),
 
-    DYNAMIC: Object.freeze([ // data: $event_name $cntx_is_activator, $cntx_is_visual
+    DYNAMIC: Object.freeze([ // data: $native_event $semantic_name $cntx_is_activator, $cntx_is_visual
       "$cntx_resizing_native",
       "$cntx_resizing_normal",
       "$cntx_resizing_soft_debounced",

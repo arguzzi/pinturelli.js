@@ -22,46 +22,74 @@
 //////////////////////////////
 
 export default class EventBus {
-  #allNodes;
+	#removedId = new Set();
+  #bus = new Map();
   #dispatcher;
+  #allNodes;
   #painter;
-  #bus;
   
   //____________
   // will be freezed!!!
-  constructor(allNodes, dispatcher, painter) {
-    this.#allNodes = allNodes;
-    this.#dispatcher = dispatcher;
-    this.#painter = painter;
-    this.#bus = new Map();
+  constructor({ ALL_NODES, PAINTER, DISPATCHER }) {
+    this.#dispatcher = DISPATCHER;
+    this.#allNodes = ALL_NODES;
+    this.#painter = PAINTER;
   }
   
   //____________
   _removeNodeReferences(nodeId) {
-    // search in all channels where this node is listening
-    // not now, maybe async or when are no reactions pending
-    // remember: check channels and messages empty maps!!!
-    this.#bus.delete(nodeId);
-  }
+		this.#removedId.add(nodeId);
+		setTimeout(() => {
+			this.#bus.delete(nodeId);
+	
+			const channelsToDelete = [];
+			const messagesToDelete = [];
+	
+			for (const [channelId, messages] of this.#bus) {
+				for (const [message, receivers] of messages) {
+					const wasRemoved = receivers.delete(nodeId);
+					if (wasRemoved && receivers.size === 0) {
+						messagesToDelete.push({ channelId, message });
+					}
+				}
+			}
+			
+			for (const { channelId, message } of messagesToDelete) {
+				const messages = this.#bus.get(channelId);
+				messages.delete(message);
+				if (messages.size === 0) {
+					channelsToDelete.push(channelId);
+				}
+			}
+			
+			for (const channelId of channelsToDelete) {
+				this.#bus.delete(channelId);
+			}
+
+			// this.#dispatcher.unsubscribe // PENDING
+		}, 0);
+	}
 
   //____________
-  _listen(channelId, message, receiverId, reactionCallback) {
-    const bus = this.#bus;
+  _listen(channelId, message, receiverId, description) {
+		this.#removedId.delete(channelId);
+		this.#removedId.delete(receiverId);
+    const thisBus = this.#bus;
 
-    // if (channelId === "$") dispatcher.subscribe PENDING
+    // if (channelId === "$") dispatcher.subscribe // PENDING
 
-    const hasChannel = bus.has(channelId);
-    const channel = hasChannel ? bus.get(channelId) : new Map();
-    if (!hasChannel) bus.set(channelId, channel);
+    const hasChannel = thisBus.has(channelId);
+    const channel = hasChannel ? thisBus.get(channelId) : new Map();
+    if (!hasChannel) thisBus.set(channelId, channel);
 
     const hasReceiver = hasChannel && channel.has(message);
     const receiverIds = hasReceiver ? channel.get(message) : new Map();
     if (!hasReceiver) channel.set(message, receiverIds);
 
-    receiverIds.set(receiverId, reactionCallback);
+    receiverIds.set(receiverId, description);
     
     if (channelId !== "$") return;
-    const requestedData = reactionCallback.firstConfig.requestData;
+    const requestedData = description.firstConfig.requestData;
     this.#dispatcher._setRequestedData(message, receiverId, requestedData);
   }
   
@@ -78,26 +106,54 @@ export default class EventBus {
     if (channel.size === 0) this.#bus.delete(channelId);
   }
 
+	//____________
+	#createDataManager(data) {
+		const thisBus = this;
+		return {
+			get: key => data?.[key],
+			
+			getByKeys: keys => keys.reduce((acc, key) => {
+				acc[key] = data?.[key];
+				return acc;
+			}, {}),
+
+			riskyPatch: (key, value) => {
+				data[key] = value;
+			},
+
+			riskyPatchByObject: newData => {
+				for (const [key, value] of Object.entries(newData)) {
+					data[key] = value;
+				}
+			},
+
+			riskyRelay: thisBus._emit, // args: channel, message, data
+		}
+	}
+
   //____________
-  _primaryDispatcherSpeak(data) { // provisional
+  _emitOnPrimaryChannel(data) { // provisional
     // dispatcher should handle this internally. for targeted dispatch
-    this._speak("$", data.$event_name, data);
+    this._emit("$", data.$semantic_name, data);
   }
 
   //____________
-  _speak(channelId, message, data) {
+  _emit(channelId, message, data) {
+		if (this.#removedId.has(channelId)) return;
     const channel = this.#bus.get(channelId);
     if (!channel) return; // no one is listening this channel
     const receiverIds = channel.get(message);
     if (!receiverIds) return; // no one is listening this message
 
-    const deletedNodeIds = [];
+		data.message = message;
+		const dataManager = this.#createDataManager(data);
 
+    const emptyNodeIds = [];
     receiverIds.forEach((description, receiverId) => {
       const receiver = this.#allNodes.get(receiverId);
       
       if (!receiver) {
-        deletedNodeIds.push(receiverId);
+        emptyNodeIds.push(receiverId);
         console.log("invalid receiverId in event bus!!!!", receiverId);
         return; // cancels the current execution of the forEach, not all of them
       }
@@ -110,27 +166,27 @@ export default class EventBus {
 
       // automatic re-emition
       if (description.firstConfig.propagation) {
-        this._speak(receiverId, message, data);
+        this._emit(receiverId, message, data);
       }
 
       // each reaction
       for (const reaction of description.reactions) {
-        this.#processReaction(receiver, reaction, data);
+        this.#processReaction(receiver, reaction, data, dataManager);
       }
     });
 
     // it shouldnt happen
-    for (const deletedNodeId of deletedNodeIds) {
-      receiverIds.delete(deletedNodeId);
-      _removeNodeReferences(deletedNodeId);
+    for (const emptyNodeId of emptyNodeIds) {
+      receiverIds.delete(emptyNodeId);
+      this._removeNodeReferences(emptyNodeId);
     }
     if (receiverIds.size === 0) channel.delete(message);
   }
 
   //____________
-  #processReaction(receiver, reaction, data) {
+  #processReaction(receiver, reaction, data, dataManager) {
+
     const delay = reaction.config.startAt;
-    
     if (delay > 0) {
       const delayedConfig = { ...reaction.config, startAt: 0 };
       const delayedSnapshot = { ...reaction, config: delayedConfig };
@@ -140,34 +196,43 @@ export default class EventBus {
       return;
     }
 
-    reaction.config.__receiver = receiver;
-    reaction.config.__reaction = reaction;
-    reaction.config.__data = data;
-
-    const rxSymbol = Symbol(reaction.config.token);
-    this.#painter._setReaction(rxSymbol, reaction.config);
-    // always: repeat, cancelByToken, cancelBySelector, cancelBySelectorAll
-    // sequence only: duration, useTime, useTimeBezier, useTimeSteps
-
     for (const validation of reaction.validations) {
-      if (validation(receiver._passiveManager, data)) continue;
-      this.#painter._cancelReaction(rxSymbol);
+      if (validation(receiver._passiveManager, dataManager)) continue;
       return;
     }
+
+    const rxSymbol = Symbol(reaction.config.token);
+		reaction.__rxSymbol = rxSymbol;
+    reaction.__receiver = receiver;
+    reaction.__reaction = reaction;
+    reaction.__dataManager = dataManager;
+
+		const isSnap = reaction.config.duration === 0;
+    if (isSnap) this.#painter._setSnapshot(receiver, reaction, rxSymbol);
+    else this.#painter._setSequence(receiver, reaction, rxSymbol);
+    // always: repeat, cancelByToken, cancelBySelector, cancelBySelectorAll
+    // sequence only: duration, useTime, useTimeBezier, useTimeSteps
     
-    const time = this.#painter._getTimeManager(rxSymbol);
-    reaction.update(receiver._activeManager, data, time);
+		const fakeTimeManager = { get: () => 0, riskyPatch: () => {} };
+    const realTimeManager = this.#painter._getTimeManager(rxSymbol);
+		const timeManager = isSnap ? fakeTimeManager : realTimeManager;
+    reaction.update(receiver._activeManager, dataManager, timeManager);
 
     for (const relay of reaction.relays) {
-      if (relay.channels.length === 0) {
-        this._speak(receiver.nodeId, data.message, data);
-        continue;
-      }
-
-      relay.channels.forEach(channel => {
-        if (channel !== "#") this._speak(channel, data.message, data);
-        else this._speak(receiver.nodeId, data.message, data);
-      });
+      this.#processRelay(receiver, relay, data);
     }
   }
+
+	//____________
+	#processRelay(receiver, relay, data) {
+		if (relay.channels.length === 0) {
+			this._emit(receiver.nodeId, data.message, data);
+			return;
+		}
+
+		for (const channel of relay.channels) {
+			if (channel !== "#") this._emit(channel, data.message, data);
+			else this._emit(receiver.nodeId, data.message, data);
+		}
+	}
 }
