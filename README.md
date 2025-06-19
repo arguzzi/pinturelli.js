@@ -1,8 +1,8 @@
-<div  id="readme" style="max-width: 540px !important;">
+<div id="readme" style="max-width: 540px !important;">
 
 # Pinturelli v0.2.1 <br>by Giorgio Arguzzi
 
-#### A library for painting declarative UI on the HTML canvas.<br>No frameworks. No servers. Only [q5](#about-q5.js) instances and vanilla JavaScript.<br>
+#### A library for painting declarative UI on the HTML canvas<br>No frameworks, no servers. Just [q5](#about-q5.js) instances and&nbsp;vanilla&nbsp;JavaScript<br>
 
 
 <details open>
@@ -12,11 +12,11 @@
 
 Hello. My&nbsp;name is&nbsp;Giorgio&nbsp;Arguzzi, but&nbsp;everybody&nbsp;calls&nbsp;me&nbsp;[Giorgio](https://arguzzi.github.io). Pinturelli&nbsp;started&nbsp;from the&nbsp;spirit&nbsp;of&nbsp;Processing, layered&nbsp;with&nbsp;a&nbsp;twist: React's&nbsp;superpower&nbsp;to&nbsp;organize, compose&nbsp;and&nbsp;scale. Imagine&nbsp;`draw()` meets&nbsp;`useEffect()`, *con&nbsp;amore*.
 
-Loosely inspired by a simplified actor model and Smalltalk’s vision of message-driven entities, components in Pinturelli act like tiny living beings connected by nothing but the flow of messages (with no prop&nbsp;drilling or&nbsp;fixed&nbsp;hierarchies). This&nbsp;allows for&nbsp;flexible, reusable&nbsp;interactive&nbsp;systems.
+Loosely based on the Actor Model and Smalltalk’s message-driven philosophy, Pinturelli treats components as tiny&nbsp;agents exchanging&nbsp;signals —no&nbsp;props, no&nbsp;rigid&nbsp;hierarchies. The result is&nbsp;a&nbsp;system that’s flexible, reusable, and&nbsp;functionally&nbsp;alive.
 
-Everything is encapsulated inside a tree: a canvas (the root), dynamic nodes with independent states, a touch-gesture interpretation system, an event bus for decoupled messages, time managers for asynchronous reactions, etc. You can manipulate both the internal logic and the external container of the tree, from motion and graphics, to layout and full DOM-level integration. You can create, clone and destroy trees and nodes at run time. You can easily lazy-load or fetch any resource. And the most important: you can recycle your&nbsp;sketches, upgrading them from rasterized drawings to kind-of-semantic UI&nbsp;components.
+Everything is encapsulated inside a tree: a canvas (the root), dynamic nodes with independent states, a touch-gesture interpretation system, an event bus for decoupled messages, time managers for asynchronous reactions, etc. You can manipulate both the internal logic and the external container of the tree, from motion and graphics, to layout and full DOM-level integration. You can create, clone and destroy trees and nodes at run time. You can easily lazy-load or fetch any resource. And the most important: you can recycle your&nbsp;sketches, upgrading them from&nbsp;rasterized&nbsp;drawings to kind-of-semantic UI&nbsp;components.
 
-I’m developing this library for fun, a personal playground to rethink user interfaces and the labor of coding. While I aim to (eventually) achieve an API with guaranteed backward compatibility, it’s still an experimental design in constant evolution. Even if I succeed, Pinturelli will never be meant for enterprise environments where safety, predictability and exponential growth are&nbsp;critical. If&nbsp;I&nbsp;had&nbsp;to&nbsp;choose between&nbsp;toy&nbsp;and&nbsp;tool&nbsp;—definitely&nbsp;toy. Playful, versatile&nbsp;and&nbsp;sometimes unexpectedly&nbsp;useful.
+I’m developing this library for fun, a personal playground to rethink user interfaces and the labor of coding. While I aim to (eventually) achieve an API with guaranteed backward compatibility, it’s still an experimental design in constant evolution. Even if I succeed, Pinturelli will never be meant for enterprise environments where safety, predictability and exponential growth are&nbsp;critical. If&nbsp;I&nbsp;had&nbsp;to&nbsp;choose between&nbsp;toy&nbsp;and&nbsp;tool&nbsp;: definitely&nbsp;toy. Playful, versatile&nbsp;and&nbsp;sometimes unexpectedly&nbsp;useful.
 
 Released into the public domain<br>
 CC0 1.0 Universal<br>
