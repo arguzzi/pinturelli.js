@@ -11,17 +11,17 @@
 <h2>Presentation</h2>
 </summary>
 
-Hello. My&nbsp;name is&nbsp;Giorgio&nbsp;Arguzzi, but&nbsp;everybody&nbsp;calls&nbsp;me&nbsp;[Giorgio](https://arguzzi.github.io). Pinturelli&nbsp;started&nbsp;from the&nbsp;creative&nbsp;spirit&nbsp;of&nbsp;Processing, layered&nbsp;with&nbsp;a&nbsp;twist: React's&nbsp;superpower&nbsp;to&nbsp;organize, compose&nbsp;and&nbsp;scale. Imagine&nbsp;`draw()` meets&nbsp;`useEffect()`, *con&nbsp;amore*.
+Hello. My&nbsp;name is&nbsp;Giorgio&nbsp;Arguzzi, but&nbsp;everybody&nbsp;calls&nbsp;me&nbsp;[Giorgio](https://arguzzi.github.io). Pinturelli&nbsp;started&nbsp;from the&nbsp;creative&nbsp;spirit&nbsp;of&nbsp;Processing, and then stumbled into&nbsp;something&nbsp;else: React's&nbsp;superpower&nbsp;to&nbsp;organize, compose&nbsp;and&nbsp;scale. Result: imagine&nbsp;`draw()` falling&nbsp;for&nbsp;`useEffect()`, *con&nbsp;amore*.
 
-Loosely based on the Actor Model and Smalltalk’s message-driven philosophy, Pinturelli treats components as tiny&nbsp;agents exchanging&nbsp;signals —no&nbsp;props, no&nbsp;rigid&nbsp;hierarchies. The result is&nbsp;a&nbsp;system that’s flexible, reusable, and&nbsp;functionally&nbsp;alive.
+Loosely based on the Actor Model and Smalltalk’s message-driven philosophy, Pinturelli treats components as tiny&nbsp;agents exchanging&nbsp;signals —no&nbsp;props, no&nbsp;rigid&nbsp;hierarchies. The&nbsp;goal is to build&nbsp;a&nbsp;system that&nbsp;feels&nbsp;flexible, reusable, and&nbsp;functionally&nbsp;alive. The&nbsp;architecture&nbsp;behind&nbsp;it is&nbsp;a&nbsp;*tutti&nbsp;frutti* of&nbsp;ideas, each&nbsp;one hand-picked&nbsp;to&nbsp;fit.
 
-Everything is encapsulated inside a tree: the canvas element at the root, dynamic nodes with independent states, a touch-gesture parser and dispatcher, an event bus for decoupled messages, time managers for asynchronous reactions, a compact node‑query language, etc. You can manipulate both the internal logic and the external container of the tree, from motion and graphics, to layout and full DOM-level integration. You can create, clone and destroy trees and nodes at run time. You can easily lazy-load or fetch any&nbsp;resource. And the most important: you can recycle your&nbsp;sketches, upgrading them from&nbsp;rasterized&nbsp;drawings to kind-of-semantic UI&nbsp;components.
+Everything is encapsulated inside a tree: the canvas element at the root, dynamic nodes with independent states, a touch-gesture parser and dispatcher, an event bus for decoupled messages, time managers for asynchronous reactions, a compact node‑query language, etc. You can manipulate both the internal logic and the external container of the tree, from motion and graphics, to layout and full DOM-level integration. You can create, clone and destroy trees and nodes at run time. You can easily lazy-load or fetch any&nbsp;resource. And most importantly: you can recycle your&nbsp;sketches, upgrading them from&nbsp;rasterized&nbsp;drawings to kind-of-semantic UI&nbsp;components.
 
-I’m developing this library for fun, a personal playground to rethink user interfaces and the labor of coding. While I aim to (eventually) achieve an API with guaranteed backward compatibility, it’s still an experimental design in constant evolution. Even if I succeed, Pinturelli will never be meant for enterprise environments where safety, predictability and exponential growth are&nbsp;critical. If&nbsp;I&nbsp;had&nbsp;to&nbsp;choose between&nbsp;toy&nbsp;and&nbsp;tool&nbsp;: definitely&nbsp;toy. Playful, versatile&nbsp;and&nbsp;sometimes unexpectedly&nbsp;useful.
+I’m developing this library for fun, a personal playground to rethink user interfaces and the labor of coding. While I aim to (eventually) achieve an API with guaranteed backward compatibility, it’s still an experimental design in constant evolution. Even if I succeed, Pinturelli will never be meant for enterprise environments where safety, predictability and exponential growth are&nbsp;critical. If&nbsp;I&nbsp;had&nbsp;to&nbsp;choose between&nbsp;toy&nbsp;and&nbsp;tool: definitely&nbsp;toy. Playful, versatile&nbsp;and&nbsp;sometimes unexpectedly&nbsp;useful.
 
 Released into the&nbsp;public&nbsp;domain<br>
 CC0 1.0 Universal<br>
-on May 1st, 2025
+on June 21st, 2025
 </details>
 
 <details>
