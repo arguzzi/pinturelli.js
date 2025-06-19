@@ -1,4 +1,5 @@
-<div id="readme" style="max-width: 540px !important;">
+<table id="readme" width="540" align="center">
+<tr><td>
 
 # Pinturelli v0.2.1 <br>by Giorgio Arguzzi
 
@@ -330,5 +331,5 @@ I am UX designer in @gucci
  
 I am UX designer in @gucci
  
-
-</div>
+</td></tr>
+</table>
