@@ -6,16 +6,16 @@ import { throwError } from "./_debugOutput.js";
 const supportedTypes = Object.freeze([
   "undefined",
   "boolean",
-  "number", // not infinite or nan
+  "number", // Number.isFinite (not infinite nor nan)
   "string",
   "symbol",
   "null", // is null
-  "object", // not null
-  "plainObject", // not null and prototype = object
-  "array", // is array
-  "map", // instance of map
-  "set", // instance of set
-  "promise", // instance of promise
+  "object", // not null and typeop === "object" (any structure)
+  "plainObject", // not null and prototype === Object.prototype
+  "array", // isArray
+  "map", // instanceof Map
+  "set", // instanceof Set
+  "promise", // instanceof Promise
   "function",
 ]);
 

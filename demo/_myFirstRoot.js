@@ -13,14 +13,14 @@ const myFirstRoot = pinturelliRoot({
 /* 09 */  eventsTracker: ["$tapped"], // Default: [] | Semantic names array
 /* 10 */  memoryTracker: ["ALL_NODES"], // Default: ["ALL_NODES"]
 /*    */  // ^ ^ alt: ["GLOBAL", "ALL_NODES", "ASSETS", "EVENT_BUS"]
-/* 11 */  globalAssets: { // Default: {}
-/*    */  	touch: ["loadImage", "assets/touch.png"],
-/*    */  	video: ["createVide", "assets/video.mp4", vid => {
+/* 11 */  globalAssets: [ // Default: []
+/*    */  	["touch", "loadImage", "assets/touch.png"],
+/*    */  	["video", "createVide", "assets/video.mp4", vid => {
 /*    */			vid.muted = true;
 /*    */			vid.loop = true;
 /*    */			vid.play();
 /*    */		}],
-/*    */  },
+/*    */  ],
 /* 12 */  sketchSetup: [ // Default: []
 /*    */    ["cursor", "CROSS"],
 /*    */    ["mouseX", Infinity],

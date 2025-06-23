@@ -1,3 +1,0 @@
-export default {
-  MOVEMENT_ACTIVATOR_COUNTDOWN: 300,
-}

@@ -3,13 +3,35 @@ import { throwError } from "../_debugOutput.js";
 
 import { stateFormat } from "./state.js";
 import { assetsFormat, paintingsFormat } from "./loads.js";
+import selector from "./selector.js"
 
 import UiClasses from "../../ui/UiClasses.js";
 import UiGestures from "../../ui/UiGestures.js";
 
 ////////////////////////////
 //
-const rootDescription = (allRoots, description) => {
+const configFormat = (mapConfig, configs) => {
+  typedParams.plainObject(`API pinturelliConfig (configs input)`, configs);
+  for (const [key, value] of Object.entries(configs)) {
+    if (!mapConfig.has(key)) {
+      throwError(`API pinturelliConfig`, `Invalid key "${key}" in configuration object:`, configs);
+    }
+    const originalType = typeof mapConfig.get(key);
+    const newType = typeof value;
+    if (originalType === newType) continue;
+    throwError(`API pinturelliConfig`, `Invalid type for key "${key}": expected ${originalType}, got ${newType}`);
+  }
+}
+
+////////////////////////////
+//
+const configCloning = (key, value, error) => {
+  throwError(`API pinturelliConfig`, `Failed cloning "${key}" (type: ${typeof value}) value:`, value, error);
+}
+
+////////////////////////////
+//
+const newRoot = (allRoots, description) => {
 	const { rootId, globalAssets, sketchSetup } = description;
 
   // root id
@@ -54,14 +76,13 @@ const rootDescription = (allRoots, description) => {
 
 ////////////////////////////
 //
-const nodeDescription = (allNodesByRoot, description) => {
+const newNode = (allNodesByRoot, description, nodeId) => {
 
   // root id
   const allNodes = allNodesByRoot.get(description?.rootId);
   if (!allNodes) throwError(`API pinturelliNode (description for "${description?.nodeId}")`, `Root must be declared before any node. Invalid root id: "${description?.rootId}"`); 
   
   // node id
-  const nodeId = description?.nodeId;
   typedParams.string(`pinturelliNode (nodeId)`, nodeId);
   if (!/^#[A-Za-z][A-Za-z0-9_-]*$/.test(nodeId)) {
     throwError(`API pinturelliNode`, `"nodeId" must start with "#", then a letter. Subsequent characters, if any, must be letters, digits, hyphens (-) or underscores (_). Invalid id: "${nodeId}"`);
@@ -108,7 +129,28 @@ const nodeDescription = (allNodesByRoot, description) => {
 
 ////////////////////////////
 //
+const newClone = (allNodesByRootId, description, nodeId) => {
+}
+
+////////////////////////////
+//
+const treeStructure = allNodes => {
+}
+
+////////////////////////////
+//
+const destroyPath = path => {
+}
+
+////////////////////////////
+//
 export default {
-	rootDescription,
-	nodeDescription,
+  configFormat,
+  configCloning,
+	newRoot,
+	newNode,
+  newClone,
+  treeStructure,
+  s: selector,
+  destroyPath,
 }

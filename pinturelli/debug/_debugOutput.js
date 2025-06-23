@@ -1,10 +1,10 @@
-import { devMode } from "./_allModesFlags.js";
+import { testMode } from "./_allModesFlags.js";
 import { typedParams } from "./_typeValidators.js";
 
 //////////////////////////////
 //
 export const throwError = (origin, message) => {
-  if (devMode) typedParams.string("Debug output (throwError args)", origin, message);
+  if (testMode) typedParams.string("Debug output (throwError args)", origin, message);
 
   throw new Error(`\n_____________________\n#`
     + `\n# From ${origin}: ${message}.\n#`
@@ -14,7 +14,7 @@ export const throwError = (origin, message) => {
 //////////////////////////////
 //
 export const genericLogger = (rootId, ...logs) => {
-  if (devMode) typedParams.string("Debug output (genericLogger args)", rootId, ...logs);
+  if (testMode) typedParams.string("Debug output (genericLogger args)", rootId, ...logs);
   const logsLines = logs.reduce((acc, line) => acc + `\n# ${line}`, "");
   const now = Math.round(performance.now());
 
@@ -27,14 +27,14 @@ export const genericLogger = (rootId, ...logs) => {
 //////////////////////////////
 //
 export const checkStructure = (structureName, structure) => {
-  if (devMode) typedParams.string("Debug output (checkStructure arg0)", structureName);
+  if (testMode) typedParams.string("Debug output (checkStructure arg0)", structureName);
   console.log(`# >\x1b[3m Check ${structureName}:\x1b[0m\n`, structure, "\n\n");
 }
 
 //////////////////////////////
 //
 export const firstLog = (flagDebugMode, flagErrorsMode) => {
-  if (devMode) typedParams.boolean("Debug output (firstLog arg0)", flagDebugMode, flagErrorsMode);
+  if (testMode) typedParams.boolean("Debug output (firstLog arg0)", flagDebugMode, flagErrorsMode);
   
   const noErrorsModeLog = `...\n# but error validations aren't\n#`;
   const errorsModeLog = `\n#\n# This enables:`

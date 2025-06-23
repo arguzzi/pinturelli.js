@@ -4,9 +4,9 @@ import { throwError } from "../_debugOutput.js";
 //////////////////////////////
 //
 const getSingleton = dependencies => {
-	const { createGlobal, stateManagers, UiGestures, UiClasses } = dependencies;
-	typedParams.plainObject(`__DEV__`, dependencies, stateManagers, UiGestures, UiClasses);
-	typedParams.function(`__DEV__`, createGlobal, ...Object.values(stateManagers), ...Object.values(UiClasses));
+	const { createGlobal, getStateManagers, UiGestures, UiClasses } = dependencies;
+	typedParams.plainObject(`__DEV__`, dependencies, getStateManagers, UiGestures, UiClasses);
+	typedParams.function(`__DEV__`, createGlobal, ...Object.values(getStateManagers), ...Object.values(UiClasses));
 }
 
 //////////////////////////////

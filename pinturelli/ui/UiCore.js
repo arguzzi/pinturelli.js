@@ -1,5 +1,5 @@
-import { devMode } from "../debug/_allModesFlags.js";
-import validate from "../debug/devMode/validateUiCore.js";
+import { testMode } from "../debug/_allModesFlags.js";
+import validate from "../debug/testMode/validateUiCore.js";
 
 import flag from "../debug/_allModesFlags.js";
 import apiErrors from "../debug/apiErrors/node.js";
@@ -7,187 +7,329 @@ import apiErrors from "../debug/apiErrors/node.js";
 ////////////////////////////
 //
 export default class UiCore {
-  #debug;
-	#state;
-	#assets;
-	#rootIndexChain;
+  #UI_ROOT;
+  #ALL_NODES;
+  #SELECT_ALL;
+  #CAT_PAINTER;
   #DISPATCHER;
   #EVENT_BUS;
+  
+	#state;
+  #stateOutputs = new Map([
+    ["LEFT", 0],
+    ["RIGHT", 0],
+    ["TOP", 0],
+    ["BOTTOM", 0],
+    ["WIDTH", 0],
+    ["HEIGHT", 0],
+    ["PROPORTION", 0],
+    ["OFFSET_X", 0],
+    ["OFFSET_Y", 0],
+    ["ORIGIN_X", 0],
+    ["ORIGIN_Y", 0],
+    ["CENTER_X", 0],
+    ["CENTER_Y", 0],
+    ["Z_LAYER", 0],
+    ["VISIBILITY", true],
+    ["BUFFERED", false],
+    ["CENTERED", false],
+  ]);
+
+  // internal memory
+  #registryKey = null;
+  #nodeKey = Symbol();
+  #listened = [];
+  #listenedGroup = [];
+
+  // utilities
+  #cloneIfNeeded = null;
+  #cloneSuperficial = list => (
+    list.map(value => {
+      if (typeof value !== "object" || value === null) return value;
+      if (Array.isArray(value)) return [ ...value ];
+      return { ...value };
+    })
+  );
+  #normalizeArray = value => {
+    if (value === undefined) return [];
+    return Array.isArray(value) ? value : [value];
+  }
+  #wrapAndMerge = (item, list) => ([
+    ...((item !== undefined) ? [item] : []),
+    ...(Array.isArray(list) ? list : [])
+  ]);
   
 	//____________
   // will be freezed!!!
 	constructor(dependencies, description) {
-    // apiErrors.nodeConstructor(dependencies, description);
+    if (testMode) validate.nodeConstructor({ dependencies, description });
+    const freeze = Object.freeze;
 
+    // dependencies
     const {
       UI_ROOT,
       ALL_NODES,
+      SELECT_ALL,
       DISPATCHER,
       EVENT_BUS,
-      PAINTER,
-      stateManagers
+      CAT_PAINTER,
+      getStateManagers,
+      registryKey,
     } = dependencies;
 
-    // public info
-    this.nodeId = description.nodeId;
-    this.rootId = description.rootId;
-    this.UiClass = description.UiClass;
-    this.UiGestures = Object.freeze(description.gestures);
-
-    // 
-    this._getFollowerIds = description._getFollowerIds;
-    this._assetsLoaders = description.localAssets;
-    this._setAssets = () => {}; // pending
-    this._paintings = {
-      ...description.paintings,
-      _empty: () => {},
-      _debug: (q5, state) => {
-        q5.strokeWeight(2);
-        q5.stroke(0.3, 0.6, 0.9, 0.7);
-        q5.fill(0.9, 0.5, 0.5, 0.2);
-        q5.rect(0, 0, state.get("width"), state.get("height"));
-      },
-    }
-
-
-    this.#state = description._privateState;
-    this.#assets = description?.assets ?? {};
-    this.#rootIndexChain = null;
+    this.#UI_ROOT = UI_ROOT;
+    this.#ALL_NODES = ALL_NODES;
+    this.#SELECT_ALL = SELECT_ALL;
+    this.#CAT_PAINTER = CAT_PAINTER;
     this.#DISPATCHER = DISPATCHER;
     this.#EVENT_BUS = EVENT_BUS;
+    this.#registryKey = registryKey;
 
-    const updateDebug = () => this.#debug = UI_ROOT._manageDebug(this.nodeId);
-    updateDebug();
+    // description
+    const {
+      rootId,
+      nodeId,
+      _nodeUUID,
+      _getFollowerIds,
+      UiClass,
+      gestures,
+      nodeAssets,
+      _initialState,
+      paintings,
+    } = description;
 
-    // API State
-    const thisNode = this;
-    const allArgs = {
-      node: thisNode,
-      state: thisNode.#state,
-      painter: PAINTER,
-      updaters: {
-        debug: updateDebug,
-        indexChain: () => UI_ROOT._manageIndexChain(thisNode),
-        subtree: patchedState => {
-          for (const followerId of thisNode._getFollowerIds()) {
-            const follower = ALL_NODES.get(followerId);
-            follower._passiveManager.riskyPatchByObject(patchedState);
-          }
-        }
-      },
-    };
+    // info
+    this.rootId = rootId;
+    this.nodeId = nodeId;
+    this._nodeUUID = _nodeUUID;
+    this._getFollowerIds = _getFollowerIds;
+    this.UiClass = UiClass;
+    this.UiGestures = freeze(gestures);
 
-    this._hiddenManager = Object.freeze(new stateManagers["Hidden"](allArgs));
-    this._passiveManager = Object.freeze(new stateManagers["Passive"](allArgs));
-    this._activeManager = Object.freeze(new stateManagers["Active"](allArgs));
-    this._getPublicState = key => this._passiveManager.get(key); // dev-only
-	}
-
-  //____________
-  get debug() {
-    return this.#debug;
-  }
-
-  get _rootIndexChain() {
-    return [ ...this.#rootIndexChain ];
-  }
-
-  _setRootIndexChain(newChain) {
-    this.#rootIndexChain = newChain;
-  }
-
-  // //____________
-  // // reminder:
-  // // this._subscriptions = {pubId: [eventName, eventName...], pubId: [], ...}
-  // #publish(eventName, data) {
-  //   if (this.#debug) dbgr.publishParams(eventName, data);
-  //   this.GLOBAL.EVENT_BUS.publish(this.nodeId, eventName, data);
-  // }
-
-  // #subscribe(pubId, eventName, callbacks) {
-  //   if (this.DEBUG) dbgr.subscribeParams(this, pubId, eventName, callbacks);
-  //   this.GLOBAL.EVENT_BUS.subscribe(pubId, eventName, this.nodeId, callbacks);
-
-  //   const subscriptions = this.SUBSCRIPTIONS;
-  //   if (!Array.isArray(subscriptions[pubId])) subscriptions[pubId] = [];
-  //   if (subscriptions[pubId].includes(eventName)) return;
-  //   subscriptions[pubId].push(eventName);
-  // }
-
-  // #unsubscribe(pubId, eventName) {
-  //   if (this.DEBUG) dbgr.unsubscribeParams(this, pubId, eventName);
-  //   this.GLOBAL.EVENT_BUS.unsubscribe(pubId, eventName, this.nodeId);
-  //   this.SUBSCRIPTIONS.splice(this.SUBSCRIPTIONS.indexOf(eventName), 1);
-  // }
-
-  #getReaction(channelId, message, reactionInput) {
-    const reaction = {};
-    const repeatConfig = reactionInput?.riskyRepeat ?? 0;
-    const _info = [channelId, message, this.nodeId, repeatConfig, 0];
-
-    reaction.config = {
-      _info,
-      token: _info.toString(),
-      startAt: 0,
-      duration: 0,
-      riskyRepeat: 0,
-      useTimeBezier: null,
-      useTimeSteps: null,
-      cancelByToken: null,
-      cancelBySelector: null,
-      cancelBySelectorAll: null,
-      ...(reactionInput?.config ?? {}),
-    };
-
-    const useTimeInput = reactionInput?.config?.useTime;
-    if (useTimeInput) {
-      const joinSet = new Set([ "ms", "frame", "nodeFrame", ...useTimeInput]);
-      reaction.config.useTime = [ ...joinSet ];
-    }
-
-    reaction.update = reactionInput?.update ?? (() => false);
-    reaction.lastUpdate = reactionInput?.lastUpdate ?? (() => false);
-    description.validate = [ ...(reactionInput?.validate ?? []) ];
-
-    return reaction;
-  }
-
-  //____________
-  listen(channelId, message, descriptionInput) {
-    const description = {};
+    // node assets
+    this._initialAssetLoaders = new Map(Object.entries(nodeAssets));
+    this._loadedAssetsMemory = new Map();
     
-    description.firstUpdate = descriptionInput?.firstUpdate ?? (() => {});
-    description.firstValidate = [ ...(descriptionInput?.firstValidate ?? []) ];
-    description.firstConfig = {
-      requireData: [],
-      propagation: false,
-      ...(descriptionInput?.firstConfig ?? {}),
-    }
+    // private state
+    this.#state = new Map(Object.entries(_initialState));
+    this._getRawState = key => this.#state.get(key);
+    this._patchRawState = (key, value) => this.#state.set(key, value);
+    this._getRawOutput = key => this.#stateOutputs.get(key);
+    this._patchRawOutput = (key, value) => this.#stateOutputs.set(key, value);
+    
+    // public state
+    const managers = getStateManagers({ 
+      node: this,
+      state: this.#state,
+      outputs: this.#stateOutputs,
+      ALL_NODES,
+      CAT_PAINTER,
+    });
+    this._passiveManager = freeze(managers.passive);
+    this._activeManager = freeze(managers.active);
+    this._outputManager = freeze(managers.output);
+    this.#cloneIfNeeded = managers._cloneIfNeeded;
+	
+    // paintings
+    this._localBuffer = null;
+    this._paintings = freeze(new Map([
+      ["_empty", () => {}],
+      ["_debug", ({ buffer, state }) => {
+        buffer.colorMode("RGB", 1);
+        buffer.fill(0.9, 0.5, 0.5, 0.2);
+        buffer.stroke(0.3, 0.6, 0.9, 0.5);
+        buffer.strokeWeight(2);
+        buffer.rect(0, 0, state.get("width"), state.get("height"));
+      }],
+      ...Object.entries(paintings),
+    ]));
+  }
 
-    description.reactions = [];
-    if (Object.hasOwn(descriptionInput, "reaction")) {
-      const reactionInput = descriptionInput.reaction;
-      const reaction = this.#getReaction(channelId, message, reactionInput);
-      description.reactions.push(reaction);
-    }
-
-    if (Object.hasOwn(descriptionInput, "reactions")) {
-      for (const reactionInput of descriptionInput.reactions) {
-        const reaction = this.#getReaction(channelId, message, reactionInput);
-        description.reactions.push(reaction);
+  //____________
+  // API Listen
+  get listened() {
+    return this.#listened.map(args => this.#cloneSuperficial(args));
+  }
+  get listenedGroup() {
+    return this.#listenedGroup.map(args => this.#cloneSuperficial(args));
+  }
+  
+  //____________
+  // API Listen
+  #normalizeReactions(channelId, message, newReactions) {
+    if (!Array.isArray(newReactions)) return [];
+    const { nodeId } = this;
+    const wrapAndMerge = this.#wrapAndMerge;
+    const normalizeArray = this.#normalizeArray;
+    const normalizeRelay = (relay = {}) => {
+      const { channels } = relay;
+      const newChannels = (!channels || channels === "#") ? nodeId : channels;
+      return {
+        message,
+        relayAt: 0,
+        ...relay,
+        channels: normalizeArray(newChannels),
       }
     }
+    
+    const normalizedReactions = [];
+    for (const reaction of newReactions) {
+      
+      const {
+        config = {},
+        middleware,
+        middlewares,
+        update,
+        lastUpdate,
+        relay,
+        relays,
+      } = reaction;
 
-    this.#EVENT_BUS._listen(channelId, message, this.nodeId, description);
+      const newConfig = {
+        token: `${channelId} ${message} ${nodeId}`,
+        startAt: 0,
+        riskyRepeat: 0,
+        ...config,
+        cancelByToken: normalizeArray(config.cancelByToken),
+        cancelBySelector: normalizeArray(config.cancelBySelector),
+        cancelBySelectorAll: normalizeArray(config.cancelBySelectorAll)
+      }
+      const newMiddlewares = wrapAndMerge(middleware, middlewares);
+      const newRelays = wrapAndMerge(relay, relays);
+      const newUpdate = update ?? (() => false);
+      const newLastUpdate = lastUpdate ?? (() => false);
+
+      const newReaction = {
+        config: newConfig,
+        middlewares: newMiddlewares,
+        update: newUpdate,
+        lastUpdate: newLastUpdate,
+        relays: newRelays.map(normalizeRelay),
+      }
+
+      normalizedReactions.push(newReaction);
+    }
+
+    return normalizedReactions;
   }
 
   //____________
-  clone(description) {
+  // API Listen
+  listen(channelId, message, description, groupKey) {
+    const { nodeId } = this;
+    const wrapAndMerge = this.#wrapAndMerge;
+    const isDelegated = groupKey === this.#nodeKey;
+
+    if (flag.err && !isDelegated) {
+      apiErrors.listen(nodeId, channelId, message, description);
+    }
+
+    const {
+      firstConfig = {},
+      firstMiddleware,
+      firstMiddlewares,
+      reaction,
+      reactions,
+    } = description;
+
+    const newFirstConfig = {
+      requireData: [],
+      propagation: false,
+      bubbling: false,
+      ...firstConfig
+    }
+    const newFirstMiddlewares = wrapAndMerge(firstMiddleware, firstMiddlewares);
+    const newReactions = wrapAndMerge(reaction, reactions);
+
+    const newDescription = {
+      firstConfig: newFirstConfig,
+      firstMiddlewares: newFirstMiddlewares,
+      reactions: this.#normalizeReactions(channelId, message, newReactions)
+    }
+
+    this.#EVENT_BUS._subscribe(channelId, message, nodeId, newDescription);
+    
+    // internal memory update
+    this.#listened.push([channelId, message, newDescription]);
+    if (isDelegated) return newDescription;
   }
 
   //____________
-  _removeReferences(password) {
-    if (password !== "everybodycallsmegiorgio") return;
+  // API Listen
+  listenGroup(selector, message, description) {
+    const { nodeId } = this;
+    if (flag.err) apiErrors.listenGroup(nodeId, selector, message, description);
 
+    // get group
+    const getIds = () => this.#SELECT_ALL(selector).map(({ nodeId }) => nodeId);
+    const groupIds = Array.isArray(selector) ? [ ...selector ] : getIds();
+    
+    // delegate single cases
+    const groupKey = this.#nodeKey;
+    let newDescription = description; // saves last description
+    for (const channelId of groupIds) {
+      newDescription = this.listen(channelId, message, description, groupKey);
+    }
+
+    // internal memory update
+    const newSelector = Array.isArray(selector) ? groupIds : selector;
+    this.#listenedGroup.push([newSelector, message, newDescription]);
+  }
+
+  //____________
+  // API Listen
+  stopListening(channelId, message, groupKey) {
+    const { nodeId } = this;
+    const isDelegated = groupKey === this.#nodeKey;
+
+    if (!isDelegated) {
+      if (flag.err) apiErrors.stopListening(nodeId, channelId, message);
+      this.#listened = this.#listened.filter(args => (
+        args[0] !== channelId || args[1] !== message
+      ));
+    }
+
+    if (!message) this.#EVENT_BUS._unsubscribeChannel(channelId, nodeId);
+    else this.#EVENT_BUS._unsubscribeMessage(channelId, message, nodeId);
+  }
+
+  //____________
+  // API Listen
+  stopListeningGroup(selector, message) {
+    apiErrors.stopListeningGroup(this.nodeId, selector, message);
+    this.#listenedGroup = this.#listenedGroup.filter(args => (
+      args[0] !== selector || args[1] !== message
+    ));
+
+    // get group
+    const getIds = () => this.#SELECT_ALL(selector).map(({ nodeId }) => nodeId);
+    const groupIds = Array.isArray(selector) ? [ ...selector ] : getIds();
+
+    // delegate single cases
+    const groupKey = this.#nodeKey;
+    for (const channelId of groupIds) {
+      this.stopListening(channelId, message, groupKey);
+    }
+  }
+
+  //____________
+  _getCloneDescription() {
+    const cloneSuperficial = this.#cloneSuperficial;
+    return {
+      rootId: this.rootId,
+      nodeId: this.nodeId,
+      UiClass: this.UiClass,
+      UiGestures: [ ...this.UiGestures ],
+      state: this._passiveManager.getComplete(),
+      paintings: Object.fromEntries(this._paintings),
+      listened: this.#listened.map(args => cloneSuperficial(args)),
+      listenedGroup: this.#listenedGroup.map(args => cloneSuperficial(args)),
+    }
+  }
+    
+  //____________
+  _removeReferences(unknownKey) {
+    if (unknownKey !== this.#registryKey) return;
+    // pending 
   }
 }

@@ -1,5 +1,5 @@
 export default class PrimaryDispatcher {
-  #emitter = null;
+  #EMITTER = null;
 
   //____________
   // public properties will be freezed!!!
@@ -11,9 +11,9 @@ export default class PrimaryDispatcher {
   // _setRequestedData(message, receiverId, requestedData) {
   // }
 
-  _setupConection(emitter) {
-    this.#emitter = emitter;
-    this.#emitter.updateContextWatchedNames([
+  _runRxConection(EMITTER) {
+    this.#EMITTER = EMITTER;
+    this.#EMITTER.updateContextWatchedNames([
       {
         $name: "ctx$fullscreen-opened", // PENDING CHANGE "-" TO "_"
         required: "[]",
@@ -44,7 +44,7 @@ export default class PrimaryDispatcher {
       },
     ]);
 
-    this.#emitter.updateGesturesWatchedNames([
+    this.#EMITTER.updateGesturesWatchedNames([
       {
         $semantic_name: "$gesture_started",
         required: "[]",
@@ -63,10 +63,10 @@ export default class PrimaryDispatcher {
   emitterInputTest(_memo, _state){
     console.log("FROM DISPATCHER!!!!\n@> type:", _memo?.event?.type, "\n#> memo:", _memo ,"\n*> state:", _state ,"\n")
     if (_state.$data.get("$semantic_name") === "$gesture_started") {
-      this.#emitter.updateGesturesActiveNames(["$gesture_started"]);
+      this.#EMITTER.updateGesturesActiveNames(["$gesture_started"]);
     }
     else if (_state.$data.get("$semantic_name") === "$tapped") {
-      this.#emitter.updateGesturesActiveNames([]);
+      this.#EMITTER.updateGesturesActiveNames([]);
     }
     this.EVENT_BUS._emitOnPrimaryChannel(_state.$data);
   }

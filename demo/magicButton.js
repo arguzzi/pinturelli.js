@@ -4,36 +4,41 @@ const magicButton = pinturelliNode({
 
   //_______
   // node info (inmutable)
-  nodeId: "magicButton", // Required, no default | always camelCase
-  rootId: "_root_0", // Required, no default | always start with "_"
-  UiClass: "Button", // Default: "Block" | alt: "Void" | always PascalCase
-  UiGestures: ["%HOLD", "%DRAG"], // Default: [] | always start with "$"
+  rootId: "_root_0", // Required, no default | always starts with "_"
+  nodeId: "#magicButton", // Default: null (get random id) | always starts with "#"
+  UiClass: "/Button", // Default: "/Block" | alt: "/Void" | always PascalCase and starts with "/"
+  UiGestures: ["%HOLD", "%DRAG"], // Default: [] | always UPPER_CASE and starts with "%"
 
   //_______
   // numeric -> canvas inner resolution unit
   // strings -> pseudo css units: ".1" "0.1" "1%" "1px" "1rem"
   state: {
-    labels: ["magic", "somethingElse"], // Default: [] | always camelCase
     followingId: "_root_0", // Default: rootId
+    labels: ["magic", "somethingElse"], // Default: [] | always camelCase
+    left: 30, // Default: 0 | alt: horizontal units | like position css
+    // right: 10, // Default: null | if both left/right are set = automatic width
+    top: 20, // Default: 0 | alt: vertical units | like position css
+    // bottom: 80, // Default: null | if both top/bottom are set = automatic height
     width: 300, // Default: 100 | overwridden if left/right are both set
     height: 300, // Default: 150 | overwridden if top/bottom are both set
     // proportion: 1/4, // Default: null | overwridden if width/heigth are both set
-    top: 20, // Default: 0 | alt: vertical units | like position css
-    // bottom: 80, // Default: null | if both top/bottom are set = automatic height
-    left: 30, // Default: 0 | alt: horizontal units | like position css
-    // right: 10, // Default: null | if both left/right are set = automatic width
     offsetX: 10, // Default: 0 | alt: horizontal units | like translate css
     offsetY: 40, // Default: 0 | alt: vertical units | like translate css
-    // treeVisibility: false, // Default: true | recursive propagation
-    // nodeVisibility: false, // Default: true | shadowed by treeVisibility
-    treeLayer: 1, // Default: 0 | recursive propagation
     nodeLayer: 2, // Default: 0 | treeLayer + nodeLayer = pseudo css z-index
+    treeLayer: 1, // Default: 0 | recursive propagation
+    insideLayer: 3, // Default: 0 | like css z-index
+    // nodeVisibility: false, // Default: true | shadowed by treeVisibility
+    // treeVisibility: false, // Default: true | recursive propagation
+    // layerVisibility: false, // Default: true | horizontal propagation
+    // nodePermanency: false, // Default: true | shadowed by treePermanency
+    // treePermanency: false, // Default: true | recursive propagation
+    // layerPermanency: false, // Default: true | horizontal propagation
     painting: "firstAnim", // Default: "_empty" | if debugging Default: "_debug"
     overlayedPainting: "staticShapes", // Default: "_empty"
   },
 
   //_______
-  localAssets: { // Default: {}
+  nodeAssets: { // Default: {}
     pepo: ["loadImage", "img/pepo.jpg"],
     nsdt: [
       "loadSound",
@@ -46,14 +51,14 @@ const magicButton = pinturelliNode({
   paintings: { // Default/always: { _empty, _debug }
     // _empty: () => {},
 
-    _debug: (buffer, state) => {
+    _debug: ({ buffer, state }) => {
       buffer.strokeWeight(2);
       buffer.stroke(0.3, 0.6, 0.9, 0.7);
       buffer.fill(0.9, 0.5, 0.5, 0.2);
       buffer.rect(0, 0, state.get("width"), state.get("height"));
     },
 
-    firstAnim: (q5, gr, st, da, ti) => {
+    firstAnim: ({ Q, B, S, D, T }) => {
       buffer.translate(...state.get("firstPosition"));
     },
     
@@ -77,7 +82,7 @@ const magicButton = pinturelliNode({
 ////////////////////////////////////////////
 //
 magicButton.listen("$", "$gesture_started", {
-  validate: [
+  middlewares: [
     (state, data) => true,
     (state, data) => true,
   ],
@@ -93,7 +98,8 @@ magicButton.listen("$", "$tapped", {
   //_______
   firstConfig: {
     requireData: ["$canvas_x", "$canvas_y"], // Default: [] | always: $name
-    propagation: true, // Default: false | means automatic re-emit this event
+    propagation: true, // Default: false | means automatic re-emit this event in my channel
+    bubbling: true, // Default: false | means automatic re-emit this event in next collisioned node channel
   },
 
   firstMiddleware: (state, data) => {
@@ -132,12 +138,12 @@ magicButton.listen("$", "$tapped", {
         token: "", // Default: `${channelId} ${message} ${nodeId} ${repeatNumber}` used by painter
         startAt: 8, // Default: 0 (now)
         riskyRepeat: 3, // Default: 0 (no repeat)
-        cancelByToken: ["token", "otherToken"],
-        cancelBySelector: ["path", "otherPath"], // path "#" means this node
-        cancelBySelectorAll: ["path"],
+        cancelByToken: ["token", "otherToken"], // string or array of strings
+        cancelBySelector: ["path", "otherPath"], // string or array of strings
+        cancelBySelectorAll: "singlePath", // string or array of strings
       },
 
-      validate: [(state, data) => true],
+      middlewares: [(state, data) => true],
 
       update: (state, data, time) => {
         data.set(exampleData, data.get("hi") + "pepo");
@@ -168,7 +174,7 @@ magicButton.listen("$", "$tapped", {
         startAt: 8, // Default: 0 (now). always in ms
         duration: 2_900, // Default: 300 (short animation). always in ms
         riskyRepeat: 3, // Default: 0 (no repeat). this example = repeat tree times. inifnite loop = -1, alternating loops = -2: (yes, no, yes, no, etc) or -3: (yes, no, no, yes, etc) or any -int
-        useTime: ["ratio", "easy", "easyIn", "easyOut", "easyInOut"], // Default: []. always: "ms", "frame" and "nodeFrame" 
+        useTime: ["percent", "easy", "easyIn", "easyOut", "easyInOut"], // Default: []. always: "ms", "animFrame" and "nodeFrame" 
         useTimeBezier: { exampleBezier: [0, 5.43, 0.3, -1.56] }, // Default: [] // params: [x1, y1, x2, y1] (like css cubic-bezier)
         useTimeSteps: { exampleSteps: [4, "start"], otherSteps: [12, "both"] }, // Default: [] // params: [number of steps, start/end/both] (like css steps)
       },
@@ -188,7 +194,7 @@ magicButton.listen("$", "$tapped", {
         startAt: 12000, // Default: 0 (now). always in ms
       },
 
-      validate: [
+      middlewares: [
         () => Math.random() < 0.5,
         state => state.get("painting") === "firstAnim",
         (state, data) => state.get("nameExpected") === data.get("$name"),

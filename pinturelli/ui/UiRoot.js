@@ -1,196 +1,216 @@
-import { devMode } from "../debug/_allModesFlags.js";
-import validate from "../debug/devMode/validateUiRoot.js";
+import { testMode } from "../debug/_allModesFlags.js";
+import validate from "../debug/testMode/validateUiRoot.js";
+
+import flag from "../debug/_allModesFlags.js";
+import apiErrors from "../debug/apiErrors/root.js";
 
 ////////////////////////////
 //
 export default class UiRoot {
-  #resolutionX;
-  #resolutionY;
-  #proportion;
-  #allNodes;
-  #selectAll;
-  #debugging;
-  #debug;
-  #sketch;
+  #SKETCH;
+  #EVENT_BUS;
+  #registryKey;
+
+  #fakeState = new Map([
+    ["followingId", "ARGUZZI"],                                         /* 00 */
+    ["labels", Object.freeze([])],                                      /* 01 */
+    ["left", 0],                                                        /* 02 */
+    ["right", 0],                                                       /* 03 */
+    ["top", 0],                                                         /* 04 */
+    ["bottom", 0],                                                      /* 05 */
+    ["width", 0], // real use                                           /* 06 */
+    ["height", 0], // real use                                          /* 07 */
+    ["proportion", 0], // real use                                      /* 08 */
+    ["offsetX", 0],                                                     /* 09 */
+    ["offsetY", 0],                                                     /* 10 */
+    ["nodeLayer", 0],                                                   /* 11 */
+    ["treeLayer", 0],                                                   /* 12 */
+    ["insideLayer", 0],                                                 /* 13 */
+    ["nodeVisibility", false],                                          /* 14 */
+    ["treeVisibility", true],                                           /* 15 */
+    ["layerVisibility", true],                                          /* 16 */
+    ["painting", "_empty"],                                             /* 17 */
+    ["overlayedPainting", "_empty"],                                    /* 18 */
+    ["storeBuffer", false],                                             /* 19 */
+    ["centerMatrix", false],
+  ]);
+
+  #fakeOutputs = new Map([
+    ["LEFT", 0],
+    ["RIGHT", 0],
+    ["TOP", 0],
+    ["BOTTOM", 0],
+    ["WIDTH", 0], // real use
+    ["HEIGHT", 0], // real use
+    ["PROPORTION", 0], // real use
+    ["OFFSET_X", 0],
+    ["OFFSET_Y", 0],
+    ["ORIGIN_X", 0],
+    ["ORIGIN_Y", 0],
+    ["CENTER_X", 0],
+    ["CENTER_Y", 0],
+    ["Z_LAYER", 0],
+    ["VISIBILITY", false],
+    ["BUFFERED", false],
+    ["CENTERED", false],
+  ]);
   
   //____________
   // will be freezed!!!
   constructor(dependencies, description) {
 
-    // public info
-    this.nodeId = description.rootId;
-    this.rootId = description.rootId;
-    this.UiClass = "UiRoot";
+    // dependencies
+    const {
+      SKETCH,
+      EVENT_BUS,
+      registryKey,
+    } = dependencies;
+
+    this.#SKETCH = SKETCH;
+    this.#EVENT_BUS = EVENT_BUS;
+    this.#registryKey = registryKey;
+
+    // description
+    const {
+      rootId,
+      _nodeUUID,
+      _getFollowerIds,
+      treeAssets,
+      WIDTH,
+      HEIGHT,
+      PROPORTION,
+    } = description;
+
+    // info
+    this.rootId = rootId;
+    this.nodeId = rootId;
+    this._nodeUUID = _nodeUUID;
+    this.UiClass = "/Void";
     this.UiGestures = Object.freeze([]);
-    this._getFollowerIds = dependencies._getFollowerIds;
+    this._getFollowerIds = _getFollowerIds;
 
-    this._assetsLoaders = description.globalAssets;
-    this._setAssets = () => {}; // pending
+    // tree assets
+    this._initialAssetLoaders = new Map(Object.entries(treeAssets));
+    this._loadedAssetsMemory = new Map();
 
-    // private properties
-    this.#allNodes = description.allNodes;
-    this.#selectAll = description.selectAll;
-    this.#debugging = description?.debugSelector ?? ""; // path, or array of ids
-    this.#debug = this.#debugging !== "";
-    this.#sketch = dependencies.sketch;
+    // initial size
+    this._setRootSize({ WIDTH, HEIGHT, PROPORTION });
 
-    //____________
-    // API State (fake, just for compatibility)
-    const fakeState = {
-      labels: Object.freeze([]),
-      followingId: "ARGUZZI",
-      left: 0,
-      rigth: 0,
-      top: 0,
-      bottom: 0,
-      width: this.#resolutionX,
-      height: this.#resolutionY,
-      proportion: this.#proportion,
-      offsetX: 0,
-      offsetY: 0,
-      originX: 0,
-      originY: 0,
-      treeVisibility: true,
-      nodeVisibility: false,
-      treeLayer: 0,
-      nodeLayer: 0,
-    }
-
-    //____________
-    // API State (fake)
+    // fake state (just for compatibility)
+    const fakeState = this.#fakeState;
+    const fakeOutputs = this.#fakeOutputs;
+    this._getRawState = key => fakeState.get(key);
+    this._patchRawState = () => {};
+    this._getRawOutput = key => fakeOutputs.get(key);
+    this._patchRawOutput = () => {};
     this._passiveManager = Object.freeze({
-      get: key => fakeState?.[key],
+      get: key => fakeState.get(key),
       getByKeys: keys => keys.reduce((acc, key) => {
-        acc[key] = fakeState?.[key];
+        if (fakeState.has(key)) acc[key] = fakeState.get(key);
         return acc;
       }, {}),
       riskyPatch: () => {},
       riskyPatchByObject: () => {},
-      loadLocalAsset: () => {},
-      deleteLocalAsset: () => {},
     });
-
-    //____________
-    // API State (fake)
     this._activeManager = Object.freeze({
       ...this._passiveManager,
       set: () => {},
       setByObject: () => {},
     });
-
-    //____________
-    // API State (fake)
-    this._hiddenManager = Object.freeze({
-      _setIdxChain: () => {},
-      _getIdxChain: () => [0],
-      _getPosition: () => ({ x: 0, y: 0 }),
-      _getVisibility: () => false,
-      _getZLayer: () => 0,
+    this._outputManager = Object.freeze({
+      get: key => fakeOutputs.get(key),
+      getByKeys: keys => keys.reduce((acc, key) => {
+        if (fakeOutputs.has(key)) acc[key] = fakeOutputs.get(key);
+        return acc;
+      }, {}),
     });
 
-    //____________
-    // API State (fake)
-    this._getPublicState = key => fakeState?.[key];
+    // fake methods (just for compatibility)
+    this.listen = () => {};
+    this.listenGroup = () => {};
+    this.stopListening = () => {};
+    this.stopListeningGroup = () => {};
   }
 
   //____________
-  get debug() {
-    return this.#debug;
+  _loadAssets(node, assetLoaders, logAssets = {}) {
+    const isLazyLoading = this.#SKETCH._pinturelli.wasFirstPainted;
+    const EVENT_BUS = this.#EVENT_BUS;
+    const { nodeId } = node;
+    const nodeNamespace = logAssets[nodeId]; // external mutation for logging
+    const nodePromises = new Set();
+
+    for (const [assetName, loader] of Object.entries(assetLoaders)) {
+      const [functionName, source, successCallback, errorCallback] = loader;
+      if (flag.err) apiErrors.loaderFormat(nodeId, assetName, loader);
+
+      // prevention
+      const q5Function = q5[functionName];
+      if (typeof functionName !== "function") {
+        if (flag.err) apiErrors.unknownFunction(functionName);
+        const loadingAssetError = {
+          _0_node: nodeId,
+          _1_asset: assetName,
+          _3_source: source,
+          _4_loader: functionName,
+          _log: `Unknown loader: "${functionName}" (expected a q5 function).`,
+          _original_error: {},                                
+        }
+        errorCallback?.(loadingAssetError);
+        continue;
+      }
+
+      // start loading
+      const promise = q5Function(source)
+        .then(loadedAsset => {
+          nodeNamespace[assetName] = source; // external mutation for logging
+          node._loadedAssetsMemory.set(assetName, loadedAsset); // node mutation
+          successCallback?.(loadedAsset, assetName);
+          if (!isLazyLoading) return;
+          EVENT_BUS._emit(nodeId, "loaded_asset", { assetName, source });
+        })
+        .catch(error => {
+          const loadingAssetError = {
+            _0_node: nodeId,
+            _1_asset: assetName,
+            _3_source: source,
+            _4_loader: functionName,
+            _log: `Failed loading asset: "${assetName}" in node: "${nodeId}".`,
+            _original_error: error,
+            ...error
+          }
+          errorCallback?.(loadingAssetError);
+        });
+
+      nodePromises.add(promise);
+    }
+    return nodePromises;
   }
   
   //____________
-  _manageIndexChain(finalNode) {
-    const goToRoot = (node, acc) => {
-      const followedId = node._getPublicState("followingId");
-      if (followedId === "ARGUZZI") return;
-      const followed = this.#selectAll(`#${followedId}`);
-      acc.unshift(followed._getFollowerIds().indexOf(node.nodeId));
-      goToRoot(followed, acc);
-      return acc;
-    }
-    const newChain = goToRoot(finalNode, []);
-    finalNode._setRootIndexChain(newChain);
+  _setRootSize(sizeState) {
+    if (flag.err) apiErrors.sizeFormat(this.rootId, sizeState);
+    const { WIDTH, HEIGHT, PROPORTION } = sizeState;
+    const fakeState = this.#fakeState;
+    const fakeOutputs = this.#fakeOutputs;
+    fakeState.set("WIDTH", WIDTH);
+    fakeState.set("HEIGHT", HEIGHT);
+    fakeState.set("PROPORTION", PROPORTION);
+    fakeOutputs.set("WIDTH", WIDTH);
+    fakeOutputs.set("HEIGHT", HEIGHT);
+    fakeOutputs.set("PROPORTION", PROPORTION);
+    // pending:
+    // dom integration,
+    // handle side effects
+    // and tree propagation
   }
 
   //____________
-  _manageDebug(nodeId) {
-    if (this.#debugging === "") return false;
-    if (this.#debugging === "*") return true;
-    if (typeof this.#debugging === "string") {
-      const rootTragets = this.#selectAll(`${this.nodeId} ${this.#debugging}`);
-      return rootTragets.some(targetNode => targetNode.nodeId === nodeId);
-    }
-    return this.#debugging.some(targetId => targetId === nodeId);
+  _getCloneDescription() {
   }
 
   //____________
-  _updateResolution(password, description) {
-    if (password !== "everybodycallsmegiorgio") return;
-    if (devMode) validate.updateResolution(description);
-
-    const lastX = this.#resolutionX;
-    const lastY = this.#resolutionY;
-
-    const { resolutionX, resolutionY, proportion } = description;
-    const hasResolutionX = resolutionX !== null;
-    const hasResolutionY = resolutionY !== null;
-
-    // proportion overwritten
-    if (hasResolutionX && hasResolutionY) {
-      const deltaX = Math.abs(resolutionX - lastX);
-      const deltaY = Math.abs(resolutionY - lastY);
-      if (deltaX < 1 && deltaY < 1) return;
-      this.#resolutionX = resolutionX;
-      this.#resolutionY = resolutionY;
-      this.#proportion = resolutionX / resolutionY;
-      this.#propagateNewSize(resolutionX, resolutionY);
-      return;
-    }
-
-    // proportion mandatory
-    if (proportion === null) {
-      if (devMode) validate.updateResolutionFailed(description);
-      return;
-    }
-    const deltaP = Math.abs(proportion - this.#proportion);
-
-    // deduce resolutionY
-    if (!hasResolutionY && hasResolutionX) {
-      const deltaX = Math.abs(resolutionX - lastX);
-      if (deltaP < 0.001 && deltaX < 1) return;
-      this.#resolutionX = resolutionX;
-      this.#resolutionY = resolutionX / proportion;
-      this.#proportion = proportion;
-      this.#propagateNewSize(resolutionX, this.#resolutionY);
-      return;
-    }
-
-    // deduce resolutionX
-    if (!hasResolutionX && hasResolutionY) {
-      const deltaY = Math.abs(resolutionY - lastY);
-      if (deltaP < 0.001 && deltaY < 1) return;
-      this.#resolutionX = resolutionY * proportion;
-      this.#resolutionY = resolutionY;
-      this.#proportion = proportion;
-      this.#propagateNewSize(this.#resolutionX, resolutionY);
-      return;
-    }
-  }
-
-  #propagateNewSize(resolutionX, resolutionY) {
-    for (const nodeId of this._getFollowerIds()) {
-
-      const node = this.#allNodes.get(nodeId);
-      const targetStates = node._passiveManager.getByKeys(["right", "bottom"]);
-      const activeStates = {};
-      // if (targetStates?.right) activeStates.push("right");
-      // if (targetStates?.bottom) activeStates.push("bottom");
-
-      // node._activeManager.setByObject({
-        
-      // });
-    }
-
-    this.#sketch.resize(resolutionX, resolutionY);
+  _removeReferences(unknownKey) {
+    if (unknownKey !== this.#registryKey) return;
   }
 }

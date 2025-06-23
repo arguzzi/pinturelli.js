@@ -1,8 +1,8 @@
 //////////////////////////////
 //
-// dev flag for internal use only, never true in production.
-// allows removing all type and format checks from the final bundle
-export const devMode = true; // <--named export and hardcoded value
+// flag for internal use only, never true in final bundle.
+// allows removing all format validations (via Rollup's tree shaking)
+export const testMode = true; // <--named export and hardcoded value!!!
 
 //////////////////////////////
 //

@@ -3,6 +3,24 @@ import apiErrors from "../debug/apiErrors/state.js";
 
 //////////////////////////////
 //
+export const getRootSize = ({ resolutionX, resolutionY, proportion }) => {
+	if (flag.err) apiErrors.sizeParams(resolutionX, resolutionY, proportion);
+	const hasWidth = resolutionX !== null;
+	const hasHeight = resolutionY !== null;
+  const WIDTH = hasWidth
+      ? resolutionX
+      : proportion * resolutionY;
+  const HEIGHT = hasHeight
+      ? resolutionY
+      : (proportion === 0 ? 0 : resolutionX / proportion);
+  const PROPORTION = hasWidth && hasHeight
+      ? resolutionX / resolutionY
+      : proportion;
+  return { WIDTH, HEIGHT, PROPORTION };
+}
+
+//////////////////////////////
+//
 const sizeKeys = ["width", "height"];
 const distanceKeys = ["left", "right", "top", "bottom", "offsetX", "offsetY"];
 const horizontalKeys = ["width", "left", "right", "offsetX"];
@@ -38,21 +56,6 @@ export const calculatePseudoCss = (canvas, followedBox, state) => {
 	}, {});
 
 	return { ...state, ...newState };
-}
-
-//////////////////////////////
-//
-export const calculateSize = ({	width, height, proportion }) => {
-	if (flag.err) apiErrors.sizeParams(width, height, proportion);
-
-	const hasWidth = width !== null;
-	const hasHeight = height !== null;
-
-  return {
-    width: hasWidth ? width : proportion * height,
-    height: hasHeight ? height : (proportion === 0 ? 0 : width / proportion),
-    proportion: hasWidth && hasHeight ? width / height : proportion,
-  }
 }
 
 //////////////////////////////

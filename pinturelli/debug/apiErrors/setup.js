@@ -7,12 +7,7 @@ const ignoredFunction = name => {
 
 ////////////////////////////
 //
-const unknownFunction = name => {
-}
-
-////////////////////////////
-//
-const unknownArgument = name => {
+export const unknownFunction = name => {
 }
 
 ////////////////////////////
@@ -20,5 +15,4 @@ const unknownArgument = name => {
 export default {
 	ignoredFunction,
 	unknownFunction,
-	unknownArgument,
 }

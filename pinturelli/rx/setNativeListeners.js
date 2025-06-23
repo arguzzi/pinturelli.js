@@ -16,58 +16,49 @@ import { genericLogger } from "../debug/_debugOutput.js";
 //
 //////////////////////////////
 
-export default function setNativeListeners({ GLOBAL }) {
-  const emitter = GLOBAL.EMITTER;
+export default setNativeListeners = (dependencies) => {
+  const { SKETCH, EMITTER } = dependencies;
+  const container = SKETCH._pinturelli.container;
   
   //____________
   // gestures inputs
-  const gesturesHandler = (_e) => emitter.gesturesInput(_e);
-  document.addEventListener("pointerdown", gesturesHandler);
-  document.addEventListener("pointermove", gesturesHandler);
-  document.addEventListener("pointercancel", gesturesHandler);
-  document.addEventListener("pointerup", gesturesHandler);
+  const gesturesHandler = (_e) => EMITTER.gesturesInput(_e);
+  container.addEventListener("pointerdown", gesturesHandler);
+  container.addEventListener("pointermove", gesturesHandler);
+  container.addEventListener("pointercancel", gesturesHandler);
+  container.addEventListener("pointerup", gesturesHandler);
   
   //____________
   // context inputs
-  const contextHandler = (_e) => emitter.contextInput(_e);
-	document.addEventListener("fullscreenchange", contextHandler);
+  const contextHandler = (_e) => EMITTER.contextInput(_e);
+	window.addEventListener("fullscreenchange", contextHandler);
   const vvpt = !!window?.visualViewport;
   if (vvpt) window.visualViewport.addEventListener("resize", contextHandler);
 	else window.addEventListener("resize", contextHandler);
 
   //____________
-  // navigation inputs
-  // const navigationHandler = (_e) => EMITTER.navigationInput(_e);
-  // window.addEventListener("popstate", navigationHandler);
-  // window.addEventListener("hashchange", navigationHandler);
-  // window.addEventListener("beforeunload", navigationHandler);
-
-  //____________
   // prevention: multiple touch gestures
-	document.addEventListener("touchstart", (_e) => {
+	container.addEventListener("touchstart", (_e) => {
 		if (_e.touches.length > 1) _e.preventDefault(); 
 	}, { passive: false });
 
   //____________
   // prevention: gesture for "back" or "reload"
-	document.addEventListener("touchmove", (_e) => {
+	container.addEventListener("touchmove", (_e) => {
 		_e.preventDefault();
 	}, { passive: false });
 
   //____________
   // prevention: gesture for zoom
-	document.addEventListener("gesturestart", (_e) => {
+	container.addEventListener("gesturestart", (_e) => {
 		_e.preventDefault();
 	}, { passive: false });
 
   //____________
   // prevention: disable double-tap to zoom
-	document.body.style.touchAction = "manipulation";
+	container.style.touchAction = "manipulation";
 
   //____________
   // prevention: disable long touch to select text
-	document.body.style.userSelect = "none";
-
-  //____________
-  // if (flag.log) genericLogger(rootId, `Native events added`);
+	container.style.userSelect = "none";
 }

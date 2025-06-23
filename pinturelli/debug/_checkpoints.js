@@ -11,9 +11,9 @@ const newRootCreated = (rootId, isTracked, global) => {
 
 //////////////////////////////
 //
-const setupStarted = (rootId, isTracked, assets) => {
+const setupStarted = (rootId, isTracked, allAssets) => {
   genericLogger(rootId, `Setup execution started`);
-  if (isTracked) checkStructure(`the ASSETS cache`, assets);
+  if (isTracked) checkStructure(`the loaded ASSETS`, allAssets);
 }
 
 //////////////////////////////
@@ -26,7 +26,23 @@ const treeInitialized = (rootId, isTracked, allNodes) => {
 //////////////////////////////
 //
 const cleanupEnded = (rootId, nodeId) => {
-  genericLogger(rootId, `The garbage collector removed "${nodeId}" from memory`);
+  genericLogger(rootId, `Successfully removed "${nodeId}" from memory`);
+}
+
+//////////////////////////////
+//
+const unsafeIteration = (path, accumulator, stop) => {
+  const selected = accumulator.newSelected;
+  const rootId = selected?.[0]?.rootId;
+  const info = { path, actualBatch: selected.length, ...stop };
+  genericLogger(rootId, `Selection exceeded safe iteration limits`);
+  checkStructure(`the iteration info`, info);
+}
+
+//////////////////////////////
+//
+const missingNode = (origin, path) => {
+  genericLogger(origin, `Missing node at path: "${path}"`);
 }
 
 //////////////////////////////
@@ -36,4 +52,6 @@ export default {
   setupStarted,
 	treeInitialized,
   cleanupEnded,
+  unsafeIteration,
+  missingNode,
 }
