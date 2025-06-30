@@ -2,7 +2,7 @@ import { testMode } from "../debug/_allModesFlags.js";
 import validate from "../debug/testMode/validateGlobal.js";
 
 import CatPainter from "./CatPainter.js";
-import ReactionManager from "../rx/reactionManger.js";
+import ReactionManager from "../rx/ReactionManger.js";
 import EventBus from "../rx/EventBus.js";
 import PrimaryDispatcher from "../rx/PrimaryDispatcher.js";
 import PrimaryEmitter from "../rx/PrimaryEmitter.js";
