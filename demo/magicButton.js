@@ -4,16 +4,16 @@ const magicButton = pinturelliNode({
 
   //_______
   // node info (inmutable)
-  rootId: "_root_0", // Required, no default | always starts with "_"
+  rootId: "_magicRoot", // Default: rootId | always starts with "_"
   nodeId: "#magicButton", // Default: null (get random id) | always starts with "#"
   UiClass: "/Button", // Default: "/Block" | alt: "/Void" | always PascalCase and starts with "/"
   UiGestures: ["%HOLD", "%DRAG"], // Default: [] | always UPPER_CASE and starts with "%"
 
   //_______
   // numeric -> canvas inner resolution unit
-  // strings -> pseudo css units: ".1" "0.1" "1%" "1px" "1rem"
+  // strings -> pseudo css units: "1%" "1px" "1rem" "1vw" "1vh"
   state: {
-    followingId: "_root_0", // Default: rootId
+    // following_id: "_root_0", // Default: rootId
     labels: ["magic", "somethingElse"], // Default: [] | always camelCase
     left: 30, // Default: 0 | alt: horizontal units | like position css
     // right: 10, // Default: null | if both left/right are set = automatic width
@@ -22,19 +22,19 @@ const magicButton = pinturelliNode({
     width: 300, // Default: 100 | overwridden if left/right are both set
     height: 300, // Default: 150 | overwridden if top/bottom are both set
     // proportion: 1/4, // Default: null | overwridden if width/heigth are both set
-    offsetX: 10, // Default: 0 | alt: horizontal units | like translate css
-    offsetY: 40, // Default: 0 | alt: vertical units | like translate css
-    nodeLayer: 2, // Default: 0 | treeLayer + nodeLayer = pseudo css z-index
-    treeLayer: 1, // Default: 0 | recursive propagation
-    insideLayer: 3, // Default: 0 | like css z-index
-    // nodeVisibility: false, // Default: true | shadowed by treeVisibility
-    // treeVisibility: false, // Default: true | recursive propagation
+    offset_x: 10, // Default: 0 | alt: horizontal units | like translate css
+    offset_y: 40, // Default: 0 | alt: vertical units | like translate css
+    node_layer: 2, // Default: 0 | tree_layer + node_layer = pseudo css z-index
+    tree_layer: 1, // Default: 0 | recursive propagation
+    inside_layer: 3, // Default: 0 | like css z-index
+    // node_visibility: false, // Default: true | shadowed by tree_visibility
+    // tree_visibility: false, // Default: true | recursive propagation
     // layerVisibility: false, // Default: true | horizontal propagation
     // nodePermanency: false, // Default: true | shadowed by treePermanency
     // treePermanency: false, // Default: true | recursive propagation
     // layerPermanency: false, // Default: true | horizontal propagation
     painting: "firstAnim", // Default: "_empty" | if debugging Default: "_debug"
-    overlayedPainting: "staticShapes", // Default: "_empty"
+    overlayed_painting: "staticShapes", // Default: "_empty"
   },
 
   //_______
@@ -98,8 +98,8 @@ magicButton.listen("$", "$tapped", {
   //_______
   firstConfig: {
     requireData: ["$canvas_x", "$canvas_y"], // Default: [] | always: $name
-    propagation: true, // Default: false | means automatic re-emit this event in my channel
-    bubbling: true, // Default: false | means automatic re-emit this event in next collisioned node channel
+    riskyBubbling: true, // Default: false | means automatic re-emit this event in next collisioned node channel (only $ events)
+    riskyRepublishing: true, // Default: false | means automatic re-emit this event in my channel
   },
 
   firstMiddleware: (state, data) => {
@@ -135,12 +135,12 @@ magicButton.listen("$", "$tapped", {
   reactions: [
     {
       config: {
-        token: "", // Default: `${channelId} ${message} ${nodeId} ${repeatNumber}` used by painter
+        token: "", // Default: _tokenUUID
         startAt: 8, // Default: 0 (now)
         riskyRepeat: 3, // Default: 0 (no repeat)
         cancelByToken: ["token", "otherToken"], // string or array of strings
-        cancelBySelector: ["path", "otherPath"], // string or array of strings
-        cancelBySelectorAll: "singlePath", // string or array of strings
+        cancelBySelector: ["path", "token", "otherToken"], // from selected node
+        cancelBySelectorAll: "path", // single string means all tokens from node
       },
 
       middlewares: [(state, data) => true],

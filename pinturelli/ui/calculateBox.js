@@ -22,8 +22,8 @@ export const getRootSize = ({ resolutionX, resolutionY, proportion }) => {
 //////////////////////////////
 //
 const sizeKeys = ["width", "height"];
-const distanceKeys = ["left", "right", "top", "bottom", "offsetX", "offsetY"];
-const horizontalKeys = ["width", "left", "right", "offsetX"];
+const distanceKeys = ["left", "right", "top", "bottom", "offset_x", "offset_y"];
+const horizontalKeys = ["width", "left", "right", "offset_x"];
 const pseudoCssKeys = [ ...sizeKeys, ...distanceKeys ];
 
 const getNumber = (input, suffix) => Number(input.slice(0, suffix * -1));

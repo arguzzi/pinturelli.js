@@ -13,8 +13,7 @@ export default class PrimaryEmitter {
 
   //____________
   // public properties will be freezed!!!
-  constructor({ GLOBAL, pipelines }) {
-    const { DISPATCHER, SKETCH } = GLOBAL;
+  constructor({ DISPATCHER, SKETCH }, pipelines) {
     this.DEBUG = false;
     this.DISPATCHER = DISPATCHER;
     this.SKETCH = SKETCH;
@@ -45,6 +44,8 @@ export default class PrimaryEmitter {
       _debouncingTimers: new Map(),
       _gesturesOutput: this.gesturesOutput.bind(this),
     }
+
+    DISPATCHER._setRxConnection(this);
   }
 
   //////////////////////////////

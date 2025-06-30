@@ -9,10 +9,11 @@ import apiErrors from "../debug/apiErrors/root.js";
 export default class UiRoot {
   #SKETCH;
   #EVENT_BUS;
-  #registryKey;
+  #rootPublicKey = null;
 
+  // internal memory
   #fakeState = new Map([
-    ["followingId", "ARGUZZI"],                                         /* 00 */
+    ["following_id", "ARGUZZI"],                                         /* 00 */
     ["labels", Object.freeze([])],                                      /* 01 */
     ["left", 0],                                                        /* 02 */
     ["right", 0],                                                       /* 03 */
@@ -21,20 +22,19 @@ export default class UiRoot {
     ["width", 0], // real use                                           /* 06 */
     ["height", 0], // real use                                          /* 07 */
     ["proportion", 0], // real use                                      /* 08 */
-    ["offsetX", 0],                                                     /* 09 */
-    ["offsetY", 0],                                                     /* 10 */
-    ["nodeLayer", 0],                                                   /* 11 */
-    ["treeLayer", 0],                                                   /* 12 */
-    ["insideLayer", 0],                                                 /* 13 */
-    ["nodeVisibility", false],                                          /* 14 */
-    ["treeVisibility", true],                                           /* 15 */
+    ["offset_x", 0],                                                     /* 09 */
+    ["offset_y", 0],                                                     /* 10 */
+    ["node_layer", 0],                                                   /* 11 */
+    ["tree_layer", 0],                                                   /* 12 */
+    ["inside_layer", 0],                                                 /* 13 */
+    ["node_visibility", false],                                          /* 14 */
+    ["tree_visibility", true],                                           /* 15 */
     ["layerVisibility", true],                                          /* 16 */
     ["painting", "_empty"],                                             /* 17 */
-    ["overlayedPainting", "_empty"],                                    /* 18 */
-    ["storeBuffer", false],                                             /* 19 */
-    ["centerMatrix", false],
+    ["overlayed_painting", "_empty"],                                    /* 18 */
+    ["store_buffer", false],                                             /* 19 */
+    ["center_matrix", false],
   ]);
-
   #fakeOutputs = new Map([
     ["LEFT", 0],
     ["RIGHT", 0],
@@ -58,24 +58,25 @@ export default class UiRoot {
   //____________
   // will be freezed!!!
   constructor(dependencies, description) {
+    const freeze = Object.freeze;
 
     // dependencies
     const {
       SKETCH,
       EVENT_BUS,
-      registryKey,
+      _rootPublicKey,
     } = dependencies;
 
     this.#SKETCH = SKETCH;
     this.#EVENT_BUS = EVENT_BUS;
-    this.#registryKey = registryKey;
+    this.#rootPublicKey = _rootPublicKey;
 
     // description
     const {
       rootId,
       _nodeUUID,
       _getFollowerIds,
-      treeAssets,
+      rootAssets,
       WIDTH,
       HEIGHT,
       PROPORTION,
@@ -86,12 +87,12 @@ export default class UiRoot {
     this.nodeId = rootId;
     this._nodeUUID = _nodeUUID;
     this.UiClass = "/Void";
-    this.UiGestures = Object.freeze([]);
+    this.UiGestures = freeze([]);
     this._getFollowerIds = _getFollowerIds;
 
     // tree assets
-    this._initialAssetLoaders = new Map(Object.entries(treeAssets));
     this._loadedAssetsMemory = new Map();
+    this._initialAssetLoaders = new Map(Object.entries(rootAssets));
 
     // initial size
     this._setRootSize({ WIDTH, HEIGHT, PROPORTION });
@@ -100,24 +101,24 @@ export default class UiRoot {
     const fakeState = this.#fakeState;
     const fakeOutputs = this.#fakeOutputs;
     this._getRawState = key => fakeState.get(key);
-    this._patchRawState = () => {};
+    this._patchRawState = () => null;
     this._getRawOutput = key => fakeOutputs.get(key);
-    this._patchRawOutput = () => {};
-    this._passiveManager = Object.freeze({
+    this._patchRawOutput = () => null;
+    this._passiveManager = freeze({
       get: key => fakeState.get(key),
       getByKeys: keys => keys.reduce((acc, key) => {
         if (fakeState.has(key)) acc[key] = fakeState.get(key);
         return acc;
       }, {}),
-      riskyPatch: () => {},
-      riskyPatchByObject: () => {},
+      riskyPatch: () => null,
+      riskyPatchByObject: () => null,
     });
-    this._activeManager = Object.freeze({
+    this._activeManager = freeze({
       ...this._passiveManager,
-      set: () => {},
-      setByObject: () => {},
+      set: () => null,
+      setByObject: () => null,
     });
-    this._outputManager = Object.freeze({
+    this._outputManager = freeze({
       get: key => fakeOutputs.get(key),
       getByKeys: keys => keys.reduce((acc, key) => {
         if (fakeOutputs.has(key)) acc[key] = fakeOutputs.get(key);
@@ -125,13 +126,27 @@ export default class UiRoot {
       }, {}),
     });
 
-    // fake methods (just for compatibility)
-    this.listen = () => {};
-    this.listenGroup = () => {};
-    this.stopListening = () => {};
-    this.stopListeningGroup = () => {};
+    // fake api (just for compatibility)
+    this.listened = freeze([]);
+    this.listenedGroup = freeze([]);
+    this.listen = () => null;
+    this.listenGroup = () => null;
+    this.stopListening = () => null;
+    this.stopListeningGroup = () => null;
+    this._getPainting = name => {
+      const placeholder = { _empty: () => {},  _debug: () => {} };
+      return placeholder[name];
+    }
   }
 
+  //____________
+  _getInfo() {
+    // canvas resolution
+    // px and rem equivalent
+    // viewport w/h equivalent
+    // d-viewport w/h equivalent
+  }
+  
   //____________
   _loadAssets(node, assetLoaders, logAssets = {}) {
     const isLazyLoading = this.#SKETCH._pinturelli.wasFirstPainted;
@@ -188,6 +203,18 @@ export default class UiRoot {
   }
   
   //____________
+  _removeAssets(node, assetNames) {
+    const { nodeId } = node;
+    if (flag.err) apiErrors.assetNamesFormat(nodeId, assetNames);
+
+    for (const assetName of assetNames) {
+      if (flag.err) apiErrors.unknownAssetName(node, assetName);
+      const source = node._
+      EVENT_BUS._emit(nodeId, "deleting_asset", { assetName, source });
+    }
+  }
+
+  //____________
   _setRootSize(sizeState) {
     if (flag.err) apiErrors.sizeFormat(this.rootId, sizeState);
     const { WIDTH, HEIGHT, PROPORTION } = sizeState;
@@ -202,7 +229,7 @@ export default class UiRoot {
     // pending:
     // dom integration,
     // handle side effects
-    // and tree propagation
+    // tree propagation
   }
 
   //____________
@@ -210,7 +237,12 @@ export default class UiRoot {
   }
 
   //____________
+  _removeNodeReferences(targetId, unknownKey) {
+    if (unknownKey !== this.#rootPublicKey) return;
+  }
+
+  //____________
   _removeReferences(unknownKey) {
-    if (unknownKey !== this.#registryKey) return;
+    if (unknownKey !== this.#rootPublicKey) return;
   }
 }

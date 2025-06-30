@@ -5,7 +5,7 @@ import ignoredSetup from "../debug/_ignoredSetup.js";
 
 ////////////////////////////
 //
-export default setSketchSetup = (dependencies, description) => {
+export default (dependencies, description) => {
 
   const {
     ALL_NODES,
@@ -21,7 +21,7 @@ export default setSketchSetup = (dependencies, description) => {
     rootId,
     q5NoAlphaMode,
     q5PixelatedMode,
-    q5PixelDensity,
+    // q5PixelDensity,
     q5MaxFrameRate,
     memoryTracker,
     sketchSetup,
@@ -39,11 +39,12 @@ export default setSketchSetup = (dependencies, description) => {
     // general setup
     SKETCH.createCanvas(WIDTH, HEIGHT, {alpha: !q5NoAlphaMode});
     SKETCH.displayMode(SKETCH.MAXED, q5PixelatedMode);
-    SKETCH.pixelDensity(q5PixelDensity);
     SKETCH.frameRate(q5MaxFrameRate);
+    SKETCH.pixelDensity(1);
     SKETCH.noLoop();
     
     // tree creation
+    console.log("SKETCHHHH", SKETCH, treeInitializer)
     treeInitializer();
 
     // eager loaded assets
@@ -91,3 +92,4 @@ export default setSketchSetup = (dependencies, description) => {
     CAT_PAINTER._firstPaint();
   }
 }
+

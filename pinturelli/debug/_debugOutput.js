@@ -38,20 +38,23 @@ export const firstLog = (flagDebugMode, flagErrorsMode) => {
   
   const noErrorsModeLog = `...\n# but error validations aren't\n#`;
   const errorsModeLog = `\n#\n# This enables:`
-    + `\n# 1. the user api error validations (heavy)`
-    + `\n# 2. and the checkpoints logs (lightweight)\n#`
-    + `\n# For simulating a near-final performance`
+    + `\n# 1. exhaustive validations and error messages`
+    + `\n# 2. lightweight checkpoints logs and warnings\n#`
+    + `\n# To simulate a near-final performance`
     + `\n# add "?noErrors" to your script/module path\n#`
 
   const debugModeLog = `IS ACTIVE`
     + (flagErrorsMode ? errorsModeLog : noErrorsModeLog)
-    + `\n# For removing all debug features`
+    + `\n# To disable all debug features`
     + `\n# use "?finalMode" instead of "?noErrors"`;
 
   const finalModeLog = `IS OFF...`
     + `\n# so enjoy the silence 𝄽\n#`
     + `\n# To enable it: go to your script/module path`
     + `\n# and delete the query parameter "finalMode"`;
+
+  const chars = [0x1D49C, 0x1D4A5, 0x2102, 0x1D4AE, 0x1D440];
+  const thanks = chars.map(ch => ` -${String.fromCodePoint(ch)}-`).join("  ");
 
   console.log(`_____________________\n#`
     + `\n#       /\\_/\\   ${flagDebugMode ? `${flagErrorsMode ? `𝄢` : ` `}  ♪` : ` `}`
@@ -60,7 +63,7 @@ export const firstLog = (flagDebugMode, flagErrorsMode) => {
     + `\n# Hi there`
     + `\n# Welcome to Pinturelli v0.2\n#`
     + `\n# DEBUG MODE ${flagDebugMode ? debugModeLog : finalModeLog}\n#`
-    + `\n# > <A> <J> <C> <S> <M> <`
+    + `\n# > ${thanks}`
     + `\n# >\x1b[3m pinturelli.js ~by Giorgio Arguzzi\x1b[0m`
     + `\n# >\x1b[3m published under CC0 1.0 Universal\x1b[0m`
     + `\n# > http://arguzzi.github.io/pinturelli.js \n#`);

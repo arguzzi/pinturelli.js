@@ -6,32 +6,34 @@ import apiErrors from "./debug/apiErrors/registry.js";
 import checkpoints from "./debug/_checkpoints.js";
 
 import createGlobal from "./global/createGlobal.js";
+import getRootManagers from "./ui/getRootManagers.js";
 import getStateManagers from "./ui/getStateManagers.js";
-import UiGestures from "./ui/UiGestures.js";
-import UiClasses from "./ui/UiClasses.js";
-import selector from "./debug/apiErrors/selector.js";
+import uiClassesMap from "./ui/classes/uiClassesMap.js";
+import uiGesturesMap from "./ui/drivers/uiGesturesMap.js";
 
 ////////////////////////////
 //
 export default class Registry {
 
 	// singleton pattern
-  static #singletonKey = Symbol();
+  static #singletonKey = Symbol("Registry");
 	static #firstInstance = null;
 
   // default values
-  static #singletonConfig = new Map([
+  static #registryConfig = new Map([
     ["maxBatch", 10000],
     ["maxDeep", 50],
   ]);
   
   // dependencies
   #createGlobal = null;
+  #getRootManagers = null;
   #getStateManagers = null;
-  #UiGestures = null;
-  #UiClasses = null;
+  #uiClassesMap = null;
+  #uiGesturesMap = null;
 
 	// main memory
+  #allRootKeysByRootId = new Map(); // [[rootId: KEY], [rootId: KEY] ...]
 	#allGlobalsByRootId = new Map(); // [[rootId: GLOBAL], [rootId: GLOBAL] ...]
 	#allNodesByRootId = new Map(); // [[rootId: Map[[nodeId: node] ...]] ...]
   #allRootsIdsByNodeId = new Map(); // [[nodeId: rootId], [nodeId: rootId] ...]
@@ -40,20 +42,21 @@ export default class Registry {
 
 	// garbage collector
   #treesToSearchDeadIds = new Set(); // [rootId, rootId, ...]
-  #followersIdsToClean = new Map(); // [[nodeId: node], [nodeId: node], ...]
+  #followersIdsToClean = new Set(); // [callerId, callerId, ...]
   #cleanupLogger = new FinalizationRegistry(({ rootId, nodeId }) => {
     checkpoints.cleanupEnded(rootId, nodeId);
   });
 
 	//____________
   // will be freezed!!!
-	constructor(privateKey) {
-    if (testMode) validate.constructorCall(Registry.#singletonKey, privateKey);
-
+	constructor(unknownKey) {
+    if (testMode) validate.constructorCall(Registry.#singletonKey, unknownKey);
+    if (unknownKey !== Registry.#singletonKey) return;
     this.#createGlobal = createGlobal;
+    this.#getRootManagers = getRootManagers;
     this.#getStateManagers = getStateManagers;
-    this.#UiGestures = UiGestures;
-    this.#UiClasses = UiClasses;
+    this.#uiClassesMap = uiClassesMap;
+    this.#uiGesturesMap = uiGesturesMap;
 	}
 
 	//____________
@@ -65,20 +68,21 @@ export default class Registry {
 
 	//____________
   // API Config
-  _pinturelliConfig(configs) {
+  _pinturelliConfig(newConfigs) {
 
     // getter
-    if (!configs) {
-      const configObject = Object.fromEntries(Registry.#singletonConfig);
+    if (!newConfigs) {
+      const configObject = Object.fromEntries(Registry.#registryConfig);
       return structuredClone(configObject);
     }
 
     // setter
-    if (flag.err) apiErrors.configFormat(Registry.#singletonConfig, configs);
-    for (const [key, value] of Object.entries(configs)) {
+    if (flag.err) apiErrors.configFormat(Registry.#registryConfig, newConfigs);
+    for (const [key, value] of Object.entries(newConfigs)) {
+      if (!Registry.#registryConfig.has(key)) continue;
       try {
         const clonedValue = structuredClone(value);
-        Registry.#singletonConfig.set(key, clonedValue);
+        Registry.#registryConfig.set(key, clonedValue);
       } catch (error) {
         // see "the structured clone algorithm" in "mdn web docs"
         if (flag.err) apiErrors.configCloning(key, value, error);
@@ -96,11 +100,11 @@ export default class Registry {
 
       // only returns nodes from this root
       // if no id found, schedule to clean it
-			get: (id, caller) => {
+			get: (id, callerId) => {
 				const node = originalAllNodes.get(id);
         if (!node) {
-          if (!caller) return null;
-          this.#followersIdsToClean.set(caller.nodeId, caller);
+          if (!callerId) this.#followersIdsToClean.add(id);
+          else this.#followersIdsToClean.add(callerId);
           return null;
         }
         return node;
@@ -149,7 +153,13 @@ export default class Registry {
     for (const [nodeId, seed] of allNodes) {
       if (nodeId.startsWith("_")) continue; // root cases
 			const node = this.#createNode(seed); // NEW!
-			seed.listened.forEach(args => node.listen(...handleArgs(args)));
+      console.log("kkkee1", nodeId, seed);
+      console.log("kkkee2", nodeId, node);
+      console.log("kkkee3", seed.listened.length, seed.listened);
+			seed.listened.forEach(args => {
+        console.warn("KEEEE%%%%%", args, ...handleArgs(args));
+        node.listen(...handleArgs(args))
+      });
 			seed.listenedGroup.forEach(args => node.listenGroup(...handleArgs(args)));
       allNodes.set(nodeId, node); // memory update. overwrites seed
 		}
@@ -163,7 +173,7 @@ export default class Registry {
   // API Root
   _pinturelliRoot(description) {
 		const rootCount = this.#allGlobalsByRootId.size;
-		const rootId = description.customRootId ?? `_root_${rootCount}`;  /* (A) */
+		const rootId = description.customRootId ?? `_root-${rootCount}`;   /* (A) */
 
 		// default placeholder
     const newDescription = { 
@@ -175,10 +185,10 @@ export default class Registry {
       q5PixelatedMode: false,                                          /* (G) */
       q5PixelDensity: 1,                                               /* (H) */
       q5MaxFrameRate: 60,                                              /* (I) */
-      nodesTracker: [],                                                /* (J) */
-      eventsTracker: [],                                               /* (K) */
-      memoryTracker: ["ALL_NODES"],                                    /* (L) */
-      treeAssets: [],                                                  /* (M) */
+      generalTracker: ["ALL_NODES"],                                   /* (J) */
+      memoryTracker: [],                                               /* (K) */
+      eventsTracker: [],                                               /* (L) */
+      rootAssets: [],                                                  /* (M) */
       sketchSetup: [],                                                 /* (N) */
 
 			// overwrites placeholder
@@ -194,18 +204,28 @@ export default class Registry {
 
     // types and format validation
 		if (flag.err) apiErrors.newRoot(this.#allGlobalsByRootId, newDescription);
-    
+
+    // set trackers
+    if (flag.log) {
+      const { memoryTracker, eventsTracker } = newDescription;
+      const trimAll = ids => ids.map(id => id.trim());
+      flag.setMemoryTracker(rootId, trimAll(memoryTracker));
+      flag.setEventsTracker(rootId, trimAll(eventsTracker));
+    }
+
     // memory update pt1
-    this.#allNodesByRootId.set(rootId, new Map()); // (1/5)
-    this.#allRootsIdsByNodeId.set(rootId, rootId); // (2/5)
-		this.#allFollowersByNodeId.set(rootId, new Set()); // (3/5)
+    this.#allNodesByRootId.set(rootId, new Map()); // (1/6)
+    this.#allRootsIdsByNodeId.set(rootId, rootId); // (2/6)
+		this.#allFollowersByNodeId.set(rootId, new Set()); // (3/6)
     
     // global object dependencies
+    const ROOT_KEY = Symbol(rootId);
 		const dependencies = {
       ALL_NODES: this.#allNodesProxyCreator(rootId),
       SELECT_ALL: path => this._pinturelliRiskySelectAll(path),
 		  treeInitializer: () => this.#initializeTree(rootId),
-      registryKey: Registry.#singletonKey,
+      _rootManagers: this.#getRootManagers(newDescription),
+      _rootPublicKey: ROOT_KEY,
     }
 
     // new global object
@@ -213,9 +233,10 @@ export default class Registry {
 
     // memory update pt2
     const root = GLOBAL.UI_ROOT;
-    this.#allNodesByRootId.get(rootId).set(rootId, root); // (4a/5) root
-    this.#allNodesByRootId.get(rootId).set("_", root); // (4b/5) root mirror
-		this.#allGlobalsByRootId.set(rootId, GLOBAL); // (5/5)
+    this.#allNodesByRootId.get(rootId).set(rootId, root); // (4a/6) root
+    this.#allNodesByRootId.get(rootId).set("_", root); // (4b/6) root mirror
+		this.#allGlobalsByRootId.set(rootId, GLOBAL); // (5/6)
+    this.#allRootKeysByRootId.set(rootId, ROOT_KEY); // (6/6)
 
     // checkpoint
     if (flag.log) {
@@ -226,15 +247,43 @@ export default class Registry {
     // response (API Root)
     return root;
 	}
-  
+
+	//____________
+  // API Node
+	#createNode(description) {
+    const { nodeId, rootId } = description;
+    if (nodeId.startsWith("_")) return; // root cases
+
+    const GLOBAL = this.#allGlobalsByRootId.get(rootId);
+    const dependencies = {
+      UI_ROOT: GLOBAL.UI_ROOT,
+      ALL_NODES: GLOBAL.ALL_NODES,
+      SELECT_ALL: GLOBAL.SELECT_ALL,
+      CAT_PAINTER: GLOBAL.CAT_PAINTER,
+      EVENT_BUS: GLOBAL.EVENT_BUS,
+      DISPATCHER: GLOBAL.DISPATCHER,
+      getStateManagers: this.#getStateManagers,
+      uiGesturesList: this.#uiGesturesMap,
+      _rootPublicKey: this.#allRootKeysByRootId.get(rootId),
+    }
+    
+		// node: UiClass extends UiCore (composite pattern)
+		const UiClass = this.#uiClassesMap.get(description.UiClass);
+		const node = Object.freeze(new UiClass(dependencies, description)); // NEW!
+		this.#allNodesByRootId.get(rootId).set(nodeId, node);
+    console.log("REG2", node.nodeId, node);
+    // response
+		return node;
+	}
+
 	//____________
   // API Node
 	_pinturelliNode(description) {
     const allNodesByRootId = this.#allNodesByRootId;
-
     // normalized nodeId
     const nodeUUID = crypto.randomUUID();
     const nodeId = description.nodeId ?? "#randomId_" + nodeUUID;
+    console.log("REG1", nodeId, description);
 
     // handle clone case (single-recursion and early return)
     const isClone = description._clonationKey === Registry.#singletonKey;
@@ -257,10 +306,15 @@ export default class Registry {
       _clonationKey: _, // deleted from description
       ...inmutableDescription // no state, no clonationKey
     } = description;
+    const {
+      rootId,
+      listened,
+      listenedGroup,
+    } = inmutableDescription;
 
     // state: default placeholder
     const initialState = {
-      followingId: description.rootId,                                  /* 00 */
+      following_id: rootId,                                             /* 00 */
       labels: [],                                                       /* 01 */
       left: 0,                                                          /* 02 */
       right: null,                                                      /* 03 */
@@ -269,34 +323,40 @@ export default class Registry {
       width: 100,                                                       /* 06 */
       height: 150,                                                      /* 07 */
       proportion: null,                                                 /* 08 */
-      offsetX: 0,                                                       /* 09 */
-      offsetY: 0,                                                       /* 10 */
-      nodeLayer: 0,                                                     /* 11 */
-      treeLayer: 0,                                                     /* 12 */
-      insideLayer: 0,                                                   /* 13 */
-      nodeVisibility: true,                                             /* 14 */
-      treeVisibility: true,                                             /* 15 */
-      layerVisibility: true,                                            /* 16 */
-      painting: null,                                                   /* 17 */
-      overlayedPainting: null,                                          /* 18 */
-      storeBuffer: false,                                               /* 19 */
-      centerMatrix: false,                                              /* 20 */
+      offset_x: 0,                                                      /* 09 */
+      offset_y: 0,                                                      /* 10 */
+      origin_x: 0,                                                      /* 11 */
+      origin_y: 0,                                                      /* 12 */
+      center_matrix: false,                                             /* 13 */
+      tree_visibility: true,                                            /* 14 */
+      node_visibility: true,                                            /* 15 */
+      tree_layer: 0,                                                    /* 16 */
+      node_layer: 0,                                                    /* 17 */
+      inside_layer: 0,                                                  /* 18 */
+      store_buffer: false,                                              /* 19 */
+      painting: null,                                                   /* 20 */
+      overlayed_painting: null,                                         /* 21 */
       ...state, // overwrites placeholder
     }
     
     // relations: memory update
-    const { rootId } = inmutableDescription;
-    const { followingId } = initialState;
+    const { following_id } = initialState;
     const allFollowersByNodeId = this.#allFollowersByNodeId;
     this.#allRootsIdsByNodeId.set(nodeId, rootId);
     const hasFollowers = allFollowersByNodeId.has(nodeId);
     if (!hasFollowers) allFollowersByNodeId.set(nodeId, new Set());
-    const equalsFollowers = allFollowersByNodeId.get(followingId);
+    const equalsFollowers = allFollowersByNodeId.get(following_id);
     if (equalsFollowers) equalsFollowers.add(nodeId);
-    else allFollowersByNodeId.set(followingId, new Set([nodeId]));
+    else allFollowersByNodeId.set(following_id, new Set([nodeId]));
 
     // relations: getter
     const _getFollowerIds = () => new Set(allFollowersByNodeId.get(nodeId));
+
+    // utility
+    const normalizeArray = value => {
+      if (value === undefined) return [];
+      return Array.isArray(value) ? [...value] : [value];
+    }
 
     // creation: any case
     const basicDescription = {
@@ -312,21 +372,31 @@ export default class Registry {
 
 		// creation: lazy loaded case (after initialization)
 		if (this.#initializedRootIds.has(rootId)) {
-      return this.#createNode({ ...basicDescription, _getFollowerIds });
+      const newDescription = {
+        ...basicDescription,
+        _getFollowerIds,
+        listened: normalizeArray(listened),
+        listenedGroup: normalizeArray(listenedGroup),
+      }
+      const node = this.#createNode(newDescription);
+      console.log("seed.listened:", seed.listened)
+      console.warn("node.listened:", seed.listened)
+			node.listened.forEach(args => node.listen(...handleArgs(args)));
+			node.listenedGroup.forEach(args => node.listenGroup(...handleArgs(args)));
+      return node; // response (API Node) lazy: real node
     }
 
 		// creation: eager loaded case (before initialization)
-    const { listened, listenedGroup } = description;
-    const isArray = Array.isArray;
-    const seed_listened = isArray(listened) ? [...listened] : [];
-    const seed_listenedGroup = isArray(listenedGroup) ? [...listenedGroup] : [];
+    const seed_listened = normalizeArray(listened);
+    const seed_listenedGroup = normalizeArray(listenedGroup);
     const handleListening = (args, seed_targetList) => {
-      const { selector, restArgs } = args;
+      console.warn("handleListening", args, seed_targetList);
+      const [ selector, ...restArgs ] = args;
       try {
         const json_selector = JSON.stringify(selector);
-        seed_targetList.push(json_selector, ...restArgs);
+        seed_targetList.push([json_selector, ...restArgs]);
       } catch (error) {
-        if (flag.err) apiErrors.n.listenSelector(selector, nodeId, error);
+        if (flag.err) apiErrors.s.listenSelector(selector, nodeId, error);
       }
     }
     const seed_listen = (...args) => {
@@ -364,7 +434,7 @@ export default class Registry {
     }
 
     // node simulation
-    const seed = Object.freeze({
+    const seedDescription = Object.freeze({
       ...basicDescription,
 
       // seed temporary memory (mutation expected via closures)
@@ -389,37 +459,10 @@ export default class Registry {
         _listenedGroup: seed_listenedGroup.map(args => [...args]),
       }),
 		});
-    
-		allNodesByRootId.get(rootId).set(nodeId, seed); // untill initialization
-		return seed; // response (API Node) eager: access point for closures
-	}
-
-	//____________
-  // API Node
-	#createNode(description) {
-    const { nodeId, rootId } = description;
-    if (nodeId.startsWith("_")) return; // root cases
-
-    const GLOBAL = this.#allGlobalsByRootId.get(rootId);
-    const dependencies = {
-      UI_ROOT: GLOBAL.UI_ROOT,
-      ALL_NODES: GLOBAL.ALL_NODES,
-      SELECT_ALL: GLOBAL.SELECT_ALL,
-      EVENT_BUS: GLOBAL.EVENT_BUS,
-      DISPATCHER: GLOBAL.DISPATCHER,
-      CAT_PAINTER: GLOBAL.CAT_PAINTER,
-      getStateManagers: this.#getStateManagers,
-      UiGestures: this.#UiGestures,
-      registryKey: Registry.#singletonKey,
-    }
-    
-		// node: UiClass extends UiCore (composite pattern)
-		const UiClass = this.#UiClasses[description.UiClass.slice(1)];
-		const node = Object.freeze(new UiClass(dependencies, description)); // NEW!
-		this.#allNodesByRootId.get(rootId).set(nodeId, node);
-
-    // response (API Node) lazy: real node
-		return node;
+    console.log("SEED2", seedDescription.listened.length, seedDescription);
+    const allNodes = allNodesByRootId.get(rootId);
+		allNodes.set(nodeId, seedDescription); // temporary
+		return seedDescription; // response (API Node) eager: access to closures
 	}
 
 	//____________
@@ -491,16 +534,20 @@ export default class Registry {
       const newSelected = [];
       const addedIds = new Set();
       for (const node of selected) {
-        const followingId = node._getRawState("followingId");
-        if (followingId === "ARGUZZI") {
+        const following_id = node._getRawState("following_id");
+        if (following_id === "ARGUZZI") {
           if (flag.err) apiErrors.s.beyondRoot(path, node);
           continue;
         }
-        if (addedIds.has(followingId)) continue;
-        addedIds.add(followingId);
-        const following = targetMap.get(followingId);
-        if (flag.err && !following) apiErrors.s.notSubtree(node, followingId);
-        newSelected.push(following);
+        if (addedIds.has(following_id)) continue;
+        addedIds.add(following_id);
+        const following = targetMap.get(following_id);
+        if (!following) {
+          apiErrors.s.notSubtree(node, following_id);
+          this.#followersIdsToClean.add(following_id);
+          continue;
+        }
+        newSelected.unshift(following);
       }
       return { newPath, newSelected };
     },
@@ -511,21 +558,25 @@ export default class Registry {
       const newSelected = [];
       const addedIds = new Set();
       for (const node of selected) {
-        const followingId = node._getRawState("followingId");
-        if (followingId === "ARGUZZI") {
+        const following_id = node._getRawState("following_id");
+        if (following_id === "ARGUZZI") {
           if (flag.err) apiErrors.s.beyondRoot(path, node);
           continue;
         }
-        if (addedIds.has(followingId)) continue;
-        addedIds.add(followingId);
-        const following = targetMap.get(followingId);
-        if (flag.err && !following) apiErrors.s.notSubtree(node, followingId);
+        if (addedIds.has(following_id)) continue;
+        addedIds.add(following_id);
+        const following = targetMap.get(following_id);
+        if (!following) {
+          if (flag.err) apiErrors.s.notSubtree(node, following_id);
+          this.#followersIdsToClean.add(following_id);
+          continue;
+        }
         for (const followerId of following._getFollowerIds()) {
           if (addedIds.has(followerId)) continue;
           addedIds.add(followerId);
           const follower = targetMap.get(followerId);
-          if (!follower) continue;
-          newSelected.push(follower);
+          if (follower) newSelected.push(follower);
+          else this.#followersIdsToClean.add(following_id);
         }
       }
       return { newPath, newSelected };
@@ -534,8 +585,8 @@ export default class Registry {
     // group: subtree (all followers, recursively)
     "*": (path, selected, targetMap) => {
       const stop = {
-        maxBatch: Registry.#singletonConfig.get("maxBatch"),
-        maxDeep: Registry.#singletonConfig.get("maxDeep"),
+        maxBatch: Registry.#registryConfig.get("maxBatch"),
+        maxDeep: Registry.#registryConfig.get("maxDeep"),
       }
       const addedIds = new Set();
       const newPath = path.slice(1).trim();
@@ -556,7 +607,7 @@ export default class Registry {
         for (const followerId of node._getFollowerIds()) {
           const follower = targetMap.get(followerId);
           if (follower) goDeeper(acc, follower, actualDeep + 1); // recursion!!!
-          else this.#followersIdsToClean.set(nodeId, node);
+          else this.#followersIdsToClean.add(nodeId);
         }
       };
       for (const node of selected) {
@@ -618,8 +669,8 @@ export default class Registry {
     const targetMap = this.#allNodesByRootId.get(originsRootId);
     const stop = {
       actualDeep: 0,
-      maxBatch: Registry.#singletonConfig.get("maxBatch"),
-      maxDeep: Registry.#singletonConfig.get("maxDeep"),
+      maxBatch: Registry.#registryConfig.get("maxBatch"),
+      maxDeep: Registry.#registryConfig.get("maxDeep"),
     }
 
     // iteration control (path)
@@ -642,11 +693,11 @@ export default class Registry {
       // iteration safe limits
       if (stop.actualDeep > stop.maxDeep) {
         if (flag.err) apiErrors.s.iterationDeep(stop.maxDeep, newPath);
-        if (flag.log) checkpoints.unsafeIteration(newPath, accumulator, stop);
+        if (flag.log) checkpoints.unsafeIteration(lastPath, lastSelected, stop);
       }
       if (newSelected.length > stop.maxBatch) {
         if (flag.err) apiErrors.s.iterationPatch(stop.maxBatch, newPath);
-        if (flag.log) checkpoints.unsafeIteration(newPath, accumulator, stop);
+        if (flag.log) checkpoints.unsafeIteration(lastPath, lastSelected, stop);
       }
     }
 
@@ -673,11 +724,17 @@ export default class Registry {
 
 	//____________
   // API Clone
+  // #getNewCloneId(description) {
+  // // pending!!!
+  // }
+  
+	//____________
+  // API Clone
   _pinturelliClone(path, description = {}) {
     const node = this._pinturelliRiskySelect(path);
     if (!node) return null;
     const cloneDescription = node._getCloneDescription();
-    const cloneId = description.nodeId ?? `${node.nodeId}_1-of-1-clone_`;
+    const cloneId = description.nodeId ?? `${node.nodeId}_1-of-1_clone_`;
     const _clonationKey = Registry.#singletonKey;
     const newDescription = { ...cloneDescription, cloneId, _clonationKey };
     return this._pinturelliNode(newDescription);
@@ -693,12 +750,28 @@ export default class Registry {
     return nodes.map((node, index) => {
       const cloneDescription = node._getCloneDescription();
       const baseId = customId ? `${customId}` : `${node.nodeId}`;
-      const cloneId = baseId + `_${index + 1}-of-${totalClones}-clone_`;
+      const cloneId = baseId + `_${index + 1}-of-${totalClones}_clone_`;
       const _clonationKey = Registry.#singletonKey;
       const newDescription = { ...cloneDescription, cloneId, _clonationKey };
       return this._pinturelliNode(newDescription); 
     });
   }
+
+	//____________
+  // API Destroy
+  // #idsToRemove = new Set();
+  // #batchDestroyer(GLOBAL) {
+  //   const { EVENT_BUS, PAINTER, DISPATCHER, UI_ROOT } = GLOBAL;
+  //   const ROOT_KEY = this.#allRootKeysByRootId(UI_ROOT.rootId);
+  //   const ids = this.#idsToRemove;
+  //   let done = true;
+  //   done = EVENT_BUS._removeBatchReferences(ids, ROOT_KEY) && done;
+  //   done = PAINTER._removeBatchReferences(ids, ROOT_KEY) && done;
+  //   done = DISPATCHER._removeBatchReferences(ids, ROOT_KEY) && done;
+  //   done = UI_ROOT._removeBatchReferences(ids, ROOT_KEY) && done;
+  //   this.#idsToRemove.clear();
+  //   return done;
+  // }
 
 	//____________
   // API Destroy
@@ -710,10 +783,19 @@ export default class Registry {
 		}
 
     // memory update
-		this.#allFollowersByNodeId.delete(nodeId);
-    this.#allRootsIdsByNodeId.delete(nodeId);
-		targetMap.get(nodeId)._removeReferences(Registry.#singletonKey);
-		targetMap.delete(nodeId);
+    let done = true;
+		done = this.#allFollowersByNodeId.delete(nodeId) && done;
+    done = this.#allRootsIdsByNodeId.delete(nodeId) && done;
+    const node = targetMap.get(nodeId);
+    if (testMode && !node) validate.destroyerFail(nodeId);
+		done = node._removeReferences(Registry.#singletonKey) && done;
+		done = targetMap.delete(nodeId) && done;
+    if (testMode && !done) validate.destroyerFail(nodeId);
+    if (flag.log) {
+      const { rootId } = targetMap.get("_");
+      const isTracked = flag.getMemoryFlag(rootId, nodeId);
+      if (isTracked) checkpoints.cleanupStarted(rootId, nodeId, done);
+    }
 	}
 
 	//____________
@@ -728,7 +810,10 @@ export default class Registry {
     
     // garbage collector log
     const { rootId, nodeId } = target;
-    if (flag.log) this.#cleanupLogger.register(target, {rootId, nodeId});
+    if (flag.log) {
+      const isTracked = flag.getMemoryFlag(rootId, nodeId);
+      if (isTracked) this.#cleanupLogger.register(target, {rootId, nodeId});
+    }
 
     // root case
 		if (nodeId.startsWith("_")) {
@@ -745,6 +830,8 @@ export default class Registry {
       target._removeReferences(Registry.#singletonKey);
       this.#allNodesByRootId.delete(rootId);
 			this.#allGlobalsByRootId.delete(rootId);
+      this.#allRootKeysByRootId.delete(rootId);
+      if (flag.log) flag.clearTrackers(rootId);
 			return;
 		}
 
@@ -763,32 +850,77 @@ export default class Registry {
 	}
 
   //____________
+  #removeDeadRootIdFromRegistry = rootId => {
+    let done = true;
+    done = this.#allGlobalsByRootId.delete(rootId) && done; // base case
+    done = this.#allRootKeysByRootId.delete(rootId) && done;
+    done = this.#allNodesByRootId.delete(rootId) && done;
+    done = this.#initializedRootIds.delete(rootId) && done;
+    done = this.#removeDeadNodeIdFromRegistry(rootId) && done;
+    return done;
+  }
+
+  //____________
+  #removeDeadNodeIdFromRegistry = nodeId => {
+    let done = true;
+    if (this.#allGlobalsByRootId.has(nodeId)) {
+      done = this.#removeDeadRootIdFromRegistry(nodeId) && done; // recursion!!!
+      return done;
+    }
+    done = this.#allRootsIdsByNodeId.delete(nodeId) && done;
+    done = this.#allFollowersByNodeId.delete(nodeId) && done;
+    if (flag.log) checkpoints.removedDeadId(nodeId);
+    return done;
+  }
+
+  //____________
   #runMaintenanceTasks() {
+    let some = false;
 
     // 0: force search for dead ids
     for (const rootId of this.#treesToSearchDeadIds) {
-      this._pinturelliRiskySelectAll(`${rootId} *`);
+      this._pinturelliRiskySelectAll(`${rootId} *`); // task-0
     }
+    this.#treesToSearchDeadIds.clear();
 
     // 1: clean dead following ids
-    for (const [callerId, caller] of this.#followersIdsToClean) {
-      const targetMap = this.#allNodesByRootId.get(caller.rootId);
+    for (const callerId of this.#followersIdsToClean) {
+      const rootId = this.#allRootsIdsByNodeId.get(callerId);
+      if (!rootId) {
+        some = this.#removeDeadNodeIdFromRegistry(callerId) || some;
+        continue;
+      }
+      const allNodes = this.#allNodesByRootId.get(rootId);
+      if (!allNodes) {
+        some = this.#removeDeadRootIdFromRegistry(rootId) || some;
+        continue;
+      }
+      const caller = allNodes.get(callerId);
+      if (!caller) {
+        some = this.#removeDeadNodeIdFromRegistry(callerId) || some;
+        continue;
+      }
       const allFollowersSet = this.#allFollowersByNodeId.get(callerId);
-      for (const followingId of caller._getFollowerIds()) {
-        if (targetMap.has(followingId)) continue;
-
-        // memory update
-        allFollowersSet.delete(followingId);
-        this.#allRootsIdsByNodeId.delete(followingId);
+      for (const following_id of caller._getFollowerIds()) {
+        if (allNodes.has(following_id)) continue;
+        some = allFollowersSet.delete(following_id) || some; // task-1
+        some = this.#removeDeadNodeIdFromRegistry(following_id) || some;
       }
     }
-
-    // 2: event bus
-    // 3: dispatcher
-    // 4: painter
-
-    // Z: clear all tasks
-    this.#treesToSearchDeadIds.clear();
     this.#followersIdsToClean.clear();
+
+    const rootKeys = this.#allRootKeysByRootId;
+    for (const [rootId, GLOBAL] of this.#allGlobalsByRootId) {
+      const rootKey = rootKeys.get(rootId);
+
+      // 2: event bus
+	    some = GLOBAL.EVENT_BUS._runMaintenanceTasks(rootKey) || some;
+      
+      // 3: dispatcher
+      
+      // 4: painter
+    }
+
+    return some;
   }
 }

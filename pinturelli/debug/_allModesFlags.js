@@ -1,23 +1,53 @@
 //////////////////////////////
 //
+// static flag
 // flag for internal use only, never true in final bundle.
 // allows removing all format validations (via Rollup's tree shaking)
 export const testMode = true; // <--named export and hardcoded value!!!
 
 //////////////////////////////
 //
-// dynamic flags
-const state = {
-	apiErrors: true,
-	checkpoints: true,
+// debug flags
+const debugState = { apiErrors: true, checkpoints: true };
+export const setApiErrors = flagValue => debugState.apiErrors = !!flagValue;
+export const setCheckpoints = flagValue => debugState.checkpoints = !!flagValue;
+
+//////////////////////////////
+//
+// trackers flags
+const createTracker = () => {
+  const idsByRootId = new Map();
+  return {
+    getFlag: (rootId, targetId) => {
+      const targetsSet = idsByRootId.get(rootId);
+      if (!targetsSet) return false;
+      if (targetsSet.has("*")) return true;
+      return targetsSet.has(targetId);
+    },
+    setTrackedIds: (rootId, targetIds) => {
+      idsByRootId.set(rootId, new Set(targetIds));
+    },
+    clearRootId: rootId => {
+      idsByRootId.delete(rootId);
+    }
+  }
 }
 
-// setters
-export const setApiErrors = flagValue => state.apiErrors = !!flagValue;
-export const setCheckpoints = flagValue => state.checkpoints = !!flagValue;
+const memoryFlags = createTracker();
+const eventsFlags = createTracker();
+const clearTrackers = rootId => {
+  memoryFlags.clearRootId(rootId);
+  eventsFlags.clearRootId(rootId);
+}
 
-// getters
+//////////////////////////////
+//
 export default {
-	get err() { return state.apiErrors },
-	get log() { return state.checkpoints },
+	get err() { return debugState.apiErrors },
+	get log() { return debugState.checkpoints },
+  getMemoryFlag: memoryFlags.getFlag,
+  setMemoryTracker: memoryFlags.setTrackedIds,
+  getEventsFlag: eventsFlags.getFlag,
+  setEventsTracker: eventsFlags.setTrackedIds,
+  clearTrackers,
 }

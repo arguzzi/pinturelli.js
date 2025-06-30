@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document</title>
+<script src="q5.min.js"></script>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html, body {
+  width: 100svw;
+  height: 100svh;
+  overflow: hidden;
+  background-color: rgb(45, 39, 59);
+}
+section {
+  background-color: rgb(80, 70, 103);
+}
+</style>
+</head>
+<body>
+<script>
+  let MIN_W = 5;
+  let MAX_W = 80;
+  let colorA = [10, 100, 100];
+  let colorB = [20, 20, 30];
+  let lastPoint = { x: 0, y: 0, r: MIN_W }
+
+function setup() {
+  createCanvas(400, 400);
+  displayMode(MAXED);
+  background(colorB);
+  colorMode(HSB, 100, 100);
+  cursor(CROSS);
+}
+
+function getPoint(ref) {
+  const vel_xy = dist(ref.x, ref.y, mouseX, mouseY);
+  const radius = constrain(MIN_W, vel_xy * 0.8, MAX_W);
+  return {
+    x: lerp(mouseX, ref.x, 0.6),
+    y: lerp(mouseY, ref.y, 0.6),
+    r: lerp(radius, ref.r, 0.93),
+  }
+}
+
+function draw() {
+  if (!mouseIsPressed) return;
+  const newPoint = getPoint(lastPoint);
+  stroke(...colorA);
+  strokeWeight(lastPoint.r);
+  line(lastPoint.x, lastPoint.y, newPoint.x, newPoint.y);
+  lastPoint = { ...newPoint }; // save point
+}
+
+function mousePressed() {
+  lastPoint.x = mouseX;
+  lastPoint.y = mouseY;
+  lastPoint.r = 0;
+}
+
+function mouseReleased() {
+  let newPoint = { ...lastPoint };
+  const delta = {
+    x: mouseX - lastPoint.x,
+    y: mouseY - lastPoint.y,
+    r: lastPoint.r,
+  }
+
+  // final tail
+  for (let i = 0; i < 25; i++) {
+    let x = map(newPoint.r, MIN_W, MAX_W, newPoint.x, newPoint.x + delta.x);
+    let y = map(newPoint.r, MIN_W, MAX_W, newPoint.y, newPoint.y + delta.y);
+    strokeWeight(newPoint.r);
+    line(x, y, newPoint.x, newPoint.y);
+    delta.x *= 0.9;
+    delta.y *= 0.9;
+    newPoint.x = x;
+    newPoint.y = y;
+    newPoint.r = max(MIN_W, newPoint.r * 0.9);
+  }
+
+  // change color
+  colorA = [random(360), 100, 100];
+}
+
+</script>
+</body>
+</html>

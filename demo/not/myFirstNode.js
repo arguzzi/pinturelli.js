@@ -7,7 +7,7 @@ const myFirstNode = pinturelliNode({
 	state: {
     width: "100%",
     height: "100%",
-    nodeLayer: 1,
+    node_layer: 1,
     painting: "myFirstPainting",
   },
 

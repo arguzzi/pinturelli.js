@@ -1,6 +1,6 @@
 <br id="readme">
 
-# Pinturelli v0.2.1 <br>by Giorgio Arguzzi
+# Pinturelli v0.2.2 <br>by Giorgio Arguzzi
 
 #### A library for&nbsp;painting declarative&nbsp;UI on&nbsp;the&nbsp;HTML&nbsp;canvas<br>No&nbsp;frameworks,&nbsp;no&nbsp;servers. Just&nbsp;[q5](#about-q5.js)&nbsp;instances and&nbsp;vanilla&nbsp;JavaScript<br>
 
@@ -12,9 +12,9 @@
 
 Hello. My&nbsp;name is&nbsp;Giorgio&nbsp;Arguzzi, but&nbsp;everybody&nbsp;calls&nbsp;me&nbsp;[Giorgio](https://arguzzi.github.io). Pinturelli&nbsp;started&nbsp;from the&nbsp;creative&nbsp;spirit&nbsp;of&nbsp;Processing, and then stumbled into&nbsp;something&nbsp;else: React's&nbsp;superpower&nbsp;to&nbsp;organize, compose&nbsp;and&nbsp;scale. Result: imagine&nbsp;`draw()` falling&nbsp;for&nbsp;`useEffect()`, *con&nbsp;amore*.
 
-Loosely based on the Actor Model and Smalltalk’s message-driven philosophy, Pinturelli treats components as tiny&nbsp;agents exchanging&nbsp;signals —no&nbsp;props, no&nbsp;rigid&nbsp;hierarchies. The&nbsp;goal is to build&nbsp;a&nbsp;system that&nbsp;feels&nbsp;flexible, reusable, and&nbsp;functionally&nbsp;alive. The&nbsp;architecture&nbsp;behind&nbsp;it is&nbsp;a&nbsp;*tutti&nbsp;frutti* of&nbsp;ideas, each&nbsp;one hand-picked&nbsp;to&nbsp;fit.
+Loosely based on the Actor Model and Smalltalk’s message-driven philosophy, Pinturelli treats components as tiny&nbsp;agents exchanging&nbsp;signals —no&nbsp;props, no&nbsp;rigid&nbsp;hierarchies. The&nbsp;goal is to build&nbsp;a&nbsp;system that&nbsp;feels&nbsp;flexible, reusable, and&nbsp;functionally&nbsp;alive. At&nbsp;least, that&nbsp;was the&nbsp;plan. Whether&nbsp;it&nbsp;actually&nbsp;works&nbsp;is... a&nbsp;work&nbsp;in&nbsp;progress.
 
-Everything is encapsulated inside a tree: the canvas element at the root, dynamic nodes with independent states, a touch-gesture parser and dispatcher, an event bus for decoupled messages, time-controlled reactions and animations, a query‑selector specific language, etc. You can manipulate both the internal logic and the external container of the tree, from motion and graphics, to layout and full DOM-level integration. You can create, clone and destroy trees and nodes at run time. You can easily lazy-load or fetch any&nbsp;resource. And most importantly: you can recycle your&nbsp;sketches, upgrading them from&nbsp;rasterized&nbsp;drawings to kind-of-semantic UI&nbsp;components.
+Everything is encapsulated inside a tree: the canvas element at the root, dynamic nodes with independent states, a touch-gesture recognizer and dispatcher, an event bus for decoupled messages, time-controlled reactions and animations, a query‑selector specific language, etc. You can manipulate both the internal logic and the external container of the tree, from motion and graphics, to layout and full DOM-level integration. You can create, clone and destroy trees and nodes at run time. You can easily lazy-load or fetch any&nbsp;resource. And most importantly: you can recycle your&nbsp;sketches, upgrading them from&nbsp;rasterized&nbsp;drawings to kind-of-semantic UI&nbsp;components.
 
 I’m developing this library for fun, a personal playground to rethink user interfaces and the labor of coding. While I aim to (eventually) achieve an API with guaranteed backward compatibility, it’s still an experimental design in constant evolution. Even if I succeed, Pinturelli will never be meant for enterprise environments where safety, predictability and exponential growth are&nbsp;critical. If&nbsp;I&nbsp;had&nbsp;to&nbsp;choose between&nbsp;toy&nbsp;and&nbsp;tool: definitely&nbsp;toy. Playful, versatile&nbsp;and&nbsp;sometimes unexpectedly&nbsp;useful.
 
@@ -38,7 +38,6 @@ on June 21st, 2025
 
 - pinturelliRoot
 - pinturelliNode
-- pinturelliClone
 
 ### *Root API*
 
@@ -61,15 +60,15 @@ on June 21st, 2025
 - state
   - declaration
   - state output
-  - `00` followingId
+  - `00` following_id
   - `01` labels
   - `02` left
   - `04` top
   - `06` width
   - `07` height
-  - `11` nodeLayer
-  - `14` nodeVisibility
-  - `17` painting
+  - `15` node_visibility
+  - `17` node_layer
+  - `20` painting
 - paintings
   - declaration
   - arguments
@@ -86,25 +85,34 @@ on June 21st, 2025
   - data properties
   - primary request
 - reaction
-  - config: start at
-  - config: default time
-  - update: snapshots
-  - update: sequences
+  - config: start at (initial delay)
+  - config: default time (animation)
+  - update: state main mutation
+  - update: animation manager
   - update: return value
   - relays: new message
+  - relays: new channels
 
 ### *Managers*
 
+- node manager
+  - user friendly api
+  - always: state outputs
+  - always: primary data
+  - painter: all assets
+  - painter: buffer + instance
+  - **performance**
+  - **shadowed names**
 - state manager
   - get
   - set
-  - output
+  - outputs
 - data manager
   - get
 - q5 manager
   - q5 instance
   - getRootAsset
-- node manager
+- buffer manager
   - q5 createGraphics
 - animation manager
   - get
@@ -136,7 +144,7 @@ on June 21st, 2025
 
 - pinturelliRoot
 - pinturelliNode
-- pinturelliClone
+- **pinturelliClone**
 - **pinturelliCloneAll**
 - **pinturelliRiskySelect**
 - **pinturelliRiskySelectAll**
@@ -180,7 +188,7 @@ on June 21st, 2025
   - state output
   - **pseudo css units**
   - **subtree cascade**
-  - `00` followingId
+  - `00` following_id
   - `01` labels
   - `02` left
   - **`03` right**
@@ -189,18 +197,19 @@ on June 21st, 2025
   - `06` width
   - `07` height
   - **`08` proportion**
-  - **`09` offsetX**
-  - **`10` offsetY**
-  - `11` nodeLayer
-  - **`12` treeLayer**
-  - **`13` insideLayer**
-  - `14` nodeVisibility
-  - **`15` treeVisibility**
-  - **`16` layerVisibility**
-  - `17` painting
-  - **`18` overlayedPainting**
-  - **`19` storeBuffer**
-  - **`20` centerMatrix**
+  - **`09` offset_x**
+  - **`10` offset_y**
+  - **`11` origin_x**
+  - **`12` origin_y**
+  - **`13` center_matrix**
+  - **`14` tree_visibility**
+  - `15` node_visibility
+  - **`16` tree_layer**
+  - `17` node_layer
+  - **`18` inside_layer**
+  - **`19` store_buffer**
+  - `20` painting
+  - **`21` overlayed_painting**
 - paintings
   - declaration
   - arguments
@@ -209,47 +218,69 @@ on June 21st, 2025
   - **buffer**
   - **matrix**
 
+### *Clonation API*
+
+- **clone**
+  - **declaration**
+  - **single cloning**
+  - **batch cloning**
+  - **controlled ids**
+- **destroy**
+  - **subtree recursion**
+  - **memory leaks**
+
 ### *Reaction API*
 
 - listen
   - primary system
   - event bus
-  - **listen group**
+  - **listened list**
+  - **listen to a group**
   - **stop listening**
-  - **stop listening group**
 - channels
   - primary channel
   - single node channel
   - **common channels**
-  - **this window scope**
+  - **window scope**
   - **cross window scope**
 - first config
   - data properties
   - primary request
-  - **propagation**
-  - **bubbling**
+  - **risky bubbling**
+  - **risky republishing**
 - **first middleware**
   - **early return**
-  - **data mutation**
-  - **collect all primary requests**
+  - **risky data mutation**
 - reaction
-  - config: start at
-  - **config: risky repeat**
-  - config: default time
-  - **config: bezier time**
-  - **config: steps time**
+  - config: start at (initial delay)
+  - config: duration (animation)
+  - **config: risky repeat finite**
+  - **config: risky repeat infinite**
+  - **config: risky repeat custom delay**
+  - config: default time (animation)
+  - **config: bezier time (animation)**
+  - **config: steps time (animation)**
   - **middlewares: validation**
   - **middlewares: mutation**
   - **middlewares: return value**
-  - update: snapshots
-  - update: animations
-  - **update: last update**
+  - update: state main mutation
+  - update: animation manager
   - update: return value
+  - **update: last update**
   - relays: new message
-  - **relays: relay at**
+  - relays: new channels
+  - **relays: relay at (propagation delay)**
 
 ### *Managers*
 
+- node manager
+  - user friendly api
+  - always: state + outputs
+  - always: primary data
+  - painter: all assets
+  - painter: buffer + instance
+  - **performance**
+  - **shadowed names**
 - state manager
   - get
   - **getByKeys**
@@ -258,7 +289,7 @@ on June 21st, 2025
   - **riskyPatchByObject**
   - set
   - **setByObject**
-  - output
+  - outputs
 - data manager
   - get
   - **getByKeys**
@@ -269,12 +300,13 @@ on June 21st, 2025
   - q5 instance
   - getRootAsset
   - **loadRootAsset**
-- node manager
+- buffer manager
   - q5 createGraphics
-  - **buffered painting**
   - **getNodeAsset**
   - **loadNodeAsset**
   - **deleteNodeAsset**
+  - **q5 resetMatrix proxy**
+  - **buffered painting**
 - animation manager
   - get
   - **riskyPatch**
@@ -288,7 +320,7 @@ on June 21st, 2025
 | Prefix   | Suffix: origin selector                |
 |----------|----------------------------------------|
 | `_`      | root id (camelCase by convention)<small><br>* custom id cannot start with `_root_`</small>       |
-| `#`      | node id (camelCase by convention)<small><br>* custom id cannot end with `-clone_`</small>      |
+| `#`      | node id (camelCase by convention)<small><br>* custom id cannot end with `_clone_`</small>      |
 
 | Prefix   | Without suffix: group selector         |
 |----------|----------------------------------------|
@@ -308,7 +340,7 @@ on June 21st, 2025
 | `$`      | primary event (always in snake_case)   |
 | `$`      | primary channel (without suffix)       |
 | `#`      | single node channel (suffix: node id)  |
-| `@`      | common channels (no convention)<small><br>* scopes: `tree`, `thisWindow` or `crossWindow`</small>       |
+| `@`      | common channels (no convention)<small><br>* scopes: `tree`, `window` or `crosswindow`<br>* channels cannot end with `_painter_`</small>       |
 
 > **all suffixes:**
 <br>* must start with a letter.
@@ -318,21 +350,21 @@ on June 21st, 2025
 
 <details>
 <summary>
-<h2>Cheat sheet: Data and State output</h2>
+<h2>Cheat sheet: Primary data and State outputs</h2>
 </summary>
 
 | Data             | Expansions  | Type      |
 |------------------|-------------|-----------|
+| `$native_event`  | `!NE`       | *object*  |
+| `$canvas_x`      | `!X` `!XX`  | *number*  |
+| `$canvas_y`      | `!Y` `!YY`  | *number*  |
+| `$matrix_x`      | `!MX`       | *number*  |
+| `$matrix_y`      | `!MY`       | *number*  |
+| `$vel_z`         | `!VX`       | *number*  |
+| `$vel_y`         | `!VY`       | *number*  |
 | `$inertia_ratio` | `!INR`      | *number*  |
 | `$is_pressed`    | `!ISP`      | *boolean* |
 | `$is_validated`  | `!ISV`      | *boolean* |
-| `$matrix_x`      | `!MX`       | *number*  |
-| `$matrix_y`      | `!MY`       | *number*  |
-| `$native_event`  | `!NE`       | *object*  |
-| `$vel_z`         | `!VX`       | *number*  |
-| `$vel_y`         | `!VY`       | *number*  |
-| `$canvas_x`      | `!X` `!XX`  | *number*  |
-| `$canvas_y`      | `!Y` `!YY`  | *number*  |
 
 > **not all data properties have an expansion,<br>only the most common ones do**
 <br>* see the <a href="#">reference</a> for details.
@@ -341,6 +373,7 @@ on June 21st, 2025
 
 | State output | Expansions   | Type      |
 |--------------|--------------|-----------|
+| `FOLLOWING`  | `!F` `!FW`   | *object*  |
 | `LEFT`       | `!L` `!LE`   | *number*  |
 | `RIGHT`      | `!R` `!RI`   | *number*  |
 | `TOP`        | `!T` `!TO`   | *number*  |
@@ -354,10 +387,10 @@ on June 21st, 2025
 | `ORIGIN_Y`   | `!ORY`       | *number*  |
 | `CENTER_X`   | `!CX`        | *number*  |
 | `CENTER_Y`   | `!CY`        | *number*  |
-| `Z_LAYER`    | `!Z` `!ZL`   | *number*  |
-| `VISIBILITY` | `!V` `!VI`   | *boolean* |
-| `BUFFERED`   | `!BUF`       | *boolean* |
 | `CENTERED`   | `!C` `!CEN`  | *boolean* |
+| `VISIBILITY` | `!V` `!VI`   | *boolean* |
+| `Z_LAYER`    | `!Z` `!ZL`   | *number*  |
+| `BUFFERED`   | `!BUFD`      | *boolean* |
 
 > **all state outputs have at least one expansion,<br>but not all states produce outputs**
 <br>* see the <a href="#">reference</a> for details.
@@ -372,87 +405,90 @@ on June 21st, 2025
 |---------|-----------------|----------------|
 | `!A`    | animation       | Manager     <~ |
 | `!AN`   | animation       | Manager     <~ |
+| `!AFR`  | animFrame       | animation/time |
 |         |                 |                |
-| `!B`    | BOTTOM          | state          |
-| `!BO`   | BOTTOM          | state          |
-| `!BUF`  | BUFFERED        | state          |
+| `!B`    | BOTTOM          | state/output   |
+| `!BO`   | BOTTOM          | state/output   |
+| `!BU`   | buffer          | Manager     <~ |
+| `!BUF`  | buffer          | Manager     <~ |
+| `!BUFD` | BUFFERED        | state/output   |
 |         |                 |                |
-| `!C`    | CENTERED        | state          |
-| `!CEN`  | CENTERED        | state          |
-| `!CX`   | CENTER_X        | state          |
-| `!CY`   | CENTER_Y        | state          |
+| `!C`    | CENTERED        | state/output   |
+| `!CEN`  | CENTERED        | state/output   |
+| `!CX`   | CENTER_X        | state/output   |
+| `!CY`   | CENTER_Y        | state/output   |
 |         |                 |                |
 | `!D`    | data            | Manager     <~ |
 | `!DA`   | data            | Manager     <~ |
 |         |                 |                |
-| `!E`    | easy            | animation.time |
-| `!EA`   | easy            | animation.time |
-| `!EI`   | easyIn          | animation.time |
-| `!EIO`  | easyInOut       | animation.time |
-| `!EO`   | easyOut         | animation.time |
+| `!E`    | easy            | animation/time |
+| `!EA`   | easy            | animation/time |
+| `!EI`   | easyIn          | animation/time |
+| `!EIO`  | easyInOut       | animation/time |
+| `!EO`   | easyOut         | animation/time |
 |         |                 |                |
-| `!F`    | animFrame       | animation.time |
-| `!FR`   | animFrame       | animation.time |
+| `!F`    | FOLLOWING       | state/output   |
+| `!FW`   | FOLLOWING       | state/output   |
 |         |                 |                |
-| `!H`    | HEIGHT          | state          |
-| `!HE`   | HEIGHT          | state          |
+| `!H`    | HEIGHT          | state/output   |
+| `!HE`   | HEIGHT          | state/output   |
 |         |                 |                |
 | `!I`    | q5/instance     | Manager     <~ |
 | `!IN`   | q5/instance     | Manager     <~ |
-| `!INR`  | $inertia_ratio  | data           |
-| `!ISP`	| $is_pressed     | data           |
-| `!ISV`  | $is_validated   | data           |
+| `!INR`  | $inertia_ratio  | primary/data   |
+| `!ISP`	| $is_pressed     | primary/data   |
+| `!ISV`  | $is_validated   | primary/data   |
 |         |                 |                |
-| `!L` 	  | LEFT            | state          |
-| `!LE`	  | LEFT            | state          |
+| `!L` 	  | LEFT            | state/output   |
+| `!LE`	  | LEFT            | state/output   |
 |         |                 |                |
-| `!M`    | ms/millisecond  | animation.time |
-| `!MS`   | ms/millisecond  | animation.time |
-| `!MX`   | $matrix_x       | data           |
-| `!MY`   | $matrix_y	      | data           |
+| `!M`    | ms/millisecond  | animation/time |
+| `!MS`   | ms/millisecond  | animation/time |
+| `!MX`   | $matrix_x       | primary/data   |
+| `!MY`   | $matrix_y	      | primary/data   |
 |         |                 |                |
 | `!N`	  | node        	  | Manager     <~ |
 | `!NO`	  | node        	  | Manager     <~ |
 | `!NE`	  | $native_event	  | data           |
-| `!NFR`  | nodeFrame       | animation.time |
+| `!NFR`  | nodeFrame       | animation/time |
 |         |                 |                |
-| `!OFX`  | OFFSET_X        | state          |
-| `!OFY`  | OFFSET_Y        | state          |
-| `!ORX`  | ORIGIN_X        | state          |
-| `!ORY`  | ORIGIN_Y        | state          |
+| `!OFX`  | OFFSET_X        | state/output   |
+| `!OFY`  | OFFSET_Y        | state/output   |
+| `!ORX`  | ORIGIN_X        | state/output   |
+| `!ORY`  | ORIGIN_Y        | state/output   |
 |         |                 |                |
-| `!P`    | percent         | animation.time |
-| `!PCT`  | percent         | animation.time |
-| `!PRP`  | PROPORTION      | state          |
+| `!P`    | percent         | animation/time |
+| `!PCT`  | percent         | animation/time |
+| `!PRP`  | PROPORTION      | state/output   |
 |         |                 |                |
 | `!Q`    | q5/instance     | Manager     <~ |
 | `!Q5`   | q5/instance     | Manager     <~ |
 |         |                 |                |
-| `!R`	  | RIGHT           | state          |
-| `!RI`	  | RIGHT           | state          |
+| `!R`	  | RIGHT           | state/output   |
+| `!RI`	  | RIGHT           | state/output   |
 |         |                 |                |
 | `!S`    | state		        | Manager     <~ |
 | `!ST`   | state		        | Manager     <~ |
 |         |                 |                |
-| `!T`    | TOP             | state          |
-| `!TO`   | TOP             | state          |
+| `!T`    | TOP             | state/output   |
+| `!TO`   | TOP             | state/output   |
 |         |                 |                |
-| `!V`    | VISIBILITY      | state          |
-| `!VI`   | VISIBILITY      | state          |
-| `!VX`   | $vel_z		      | data           |
-| `!VY`	  | $vel_y		      | data           |
+| `!V`    | VISIBILITY      | state/output   |
+| `!VI`   | VISIBILITY      | state/output   |
+| `!VX`   | $vel_z		      | primary/data   |
+| `!VY`	  | $vel_y		      | primary/data   |
 |         |                 |                |
-| `!W`	  | WIDTH           | state          |
-| `!WI`	  | WIDTH           | state          |
+| `!W`	  | WIDTH           | state/output   |
+| `!WI`	  | WIDTH           | state/output   |
 |         |                 |                |
-| `!X`	  | $canvas_x       | data           |
-| `!XX`	  | $canvas_x       | data           |
+| `!X`	  | $canvas_x       | primary/data   |
+| `!XX`	  | $canvas_x       | primary/data   |
 |         |                 |                |
-| `!Y`    | $canvas_y       | data           |
-| `!YY`   | $canvas_y       | data           |
+| `!Y`    | $canvas_y       | primary/data   |
+| `!YY`   | $canvas_y       | primary/data   |
 |         |                 |                |
-| `!Z`    | Z_LAYER         | state          |
-| `!ZL`   | Z_LAYER         | state          |
+| `!Z`    | Z_LAYER         | state/output   |
+| `!ZL`   | Z_LAYER         | state/output   |
 </details>
 
 <br id="about-q5.js">

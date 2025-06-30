@@ -2,15 +2,16 @@ import { typedParams } from "../_typeValidators.js";
 import { throwError } from "../_debugOutput.js";
 
 import { stateFormat } from "./state.js";
-import { assetsFormat, paintingsFormat } from "./loads.js";
+// import { assetsFormat, paintingsFormat } from "./loads.js";
 import selector from "./selector.js"
 
-import UiClasses from "../../ui/UiClasses.js";
-import UiGestures from "../../ui/UiGestures.js";
+import UiClasses from "../../ui/classes/uiClassesMap.js";
+import UiGestures from "../../ui/drivers/uiGesturesMap.js";
 
 ////////////////////////////
 //
 const configFormat = (mapConfig, configs) => {
+  return//@@@
   typedParams.plainObject(`API pinturelliConfig (configs input)`, configs);
   for (const [key, value] of Object.entries(configs)) {
     if (!mapConfig.has(key)) {
@@ -26,12 +27,14 @@ const configFormat = (mapConfig, configs) => {
 ////////////////////////////
 //
 const configCloning = (key, value, error) => {
+  return//@@@
   throwError(`API pinturelliConfig`, `Failed cloning "${key}" (type: ${typeof value}) value:`, value, error);
 }
 
 ////////////////////////////
 //
 const newRoot = (allRoots, description) => {
+  return//@@@
 	const { rootId, globalAssets, sketchSetup } = description;
 
   // root id
@@ -77,6 +80,7 @@ const newRoot = (allRoots, description) => {
 ////////////////////////////
 //
 const newNode = (allNodesByRoot, description, nodeId) => {
+  return//@@@
 
   // root id
   const allNodes = allNodesByRoot.get(description?.rootId);
@@ -130,16 +134,19 @@ const newNode = (allNodesByRoot, description, nodeId) => {
 ////////////////////////////
 //
 const newClone = (allNodesByRootId, description, nodeId) => {
+  return//@@@
 }
 
 ////////////////////////////
 //
 const treeStructure = allNodes => {
+  return//@@@
 }
 
 ////////////////////////////
 //
 const destroyPath = path => {
+  return//@@@
 }
 
 ////////////////////////////

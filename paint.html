@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>paint</title>
+<script src="q5.min.js"></script>
+<style>
+* {
+margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html, body {
+  width: 100svw;
+  height: 100svh;
+  overflow: hidden;
+  background-color: rgb(45, 39, 59);
+}
+</style>
+</head>
+<body>
+<script>
+//________________
+
+let MIN_W = 5;
+let MAX_W = 80;
+let colorA;
+let colorB;
+let flagTurn = false;
+let flagScrn = false;
+let lastPoint = { x: 0, y: 0, r: MIN_W };
+
+//________________
+function setup() {
+  createCanvas(...getSize());
+  displayMode(MAXED);
+  colorMode(HSB);
+  shadowBox(0, 0, 12)
+  textAlign(CENTER, CENTER);
+  noStroke();
+  cursor(CROSS);
+
+  const hue = random(310, 430) % 360;
+  colorB = [hue, 100, 100];
+  colorA = [(colorB[0] + 180) % 360, 80, 90];
+  background(...colorB);
+}
+
+//________________
+function getPoint(ref) {
+  const vel_xy = dist(ref.x, ref.y, mouseX, mouseY);
+  const radius = constrain(MIN_W, vel_xy * 2, MAX_W);
+  return {
+    x: lerp(mouseX, ref.x, 0.5),
+    y: lerp(mouseY, ref.y, 0.5),
+    r: lerp(radius, ref.r, 0.9),
+  }
+}
+
+//________________
+function draw() {
+  background(...colorB, 0.006);
+  if (!mouseIsPressed) return;
+
+  const newPoint = getPoint(lastPoint);
+  const hue = flagTurn ? random(150, 290) % 360 : random(310, 430) % 360;
+  colorB = [hue, 100, 100];
+  shadow(...colorB);
+  colorA = [(colorB[0] + 180) % 360, 80, 90];
+  fill(...colorA);
+  capsule(lastPoint.x, lastPoint.y, newPoint.x, newPoint.y, lastPoint.r);
+  shadow(...colorA);
+  fill(...colorB);
+  const x1 = width - lastPoint.x;
+  const y1 = height - lastPoint.y;
+  const x2 = width - newPoint.x;
+  const y2 = height - newPoint.y;
+  capsule(x1, y1, x2, y2, lastPoint.r);
+  push();
+  noShadow();
+  for (let i = 0.9; i > 0.2; i -= 0.05) {
+    fill(colorA[0], colorA[1] * i, colorA[2]);
+    const inR = lastPoint.r * i;
+    capsule(lastPoint.x, lastPoint.y, newPoint.x, newPoint.y, inR);
+    fill(colorB[0], colorB[1] * i, colorB[2]);
+    capsule(x1, y1, x2, y2, inR);
+  }
+  pop();
+
+  lastPoint = { ...newPoint }; // save point
+
+  const maxSize = max(width, height);
+  const colide = maxSize * 0.04;
+  if (dist(mouseX, mouseY, halfWidth, halfHeight) > colide) return;
+  noShadow();
+  fill(0, 0, 100, 0.006);
+  for (let i = 30; i > 1; i--) {
+    circle(halfWidth, halfHeight, colide * i);
+  }
+}
+
+//________________
+function mousePressed() {
+  lastPoint.x = mouseX;
+  lastPoint.y = mouseY;
+  lastPoint.r = 0;
+}
+
+//________________
+function mouseReleased() {
+  flagTurn = !flagTurn;
+  let newPoint = { ...lastPoint };
+  const delta = {
+    x: mouseX - lastPoint.x,
+    y: mouseY - lastPoint.y,
+    r: lastPoint.r,
+  }
+
+  // final tail
+  for (let i = 0; i < 25; i++) {
+    let tailX = map(newPoint.r, MIN_W, MAX_W, newPoint.x, newPoint.x + delta.x);
+    let tailY = map(newPoint.r, MIN_W, MAX_W, newPoint.y, newPoint.y + delta.y);
+    const hue = flagTurn ? random(150, 290) % 360 : random(310, 430) % 360;
+    colorB = [hue, 100, 100];
+    shadow(...colorB);
+    colorA = [(colorB[0] + 180) % 360, 80, 90];
+    fill(...colorA);
+    capsule(tailX, tailY, newPoint.x, newPoint.y, newPoint.r);
+    shadow(...colorA);
+    fill(...colorB);
+    capsule(width - tailX, height - tailY, width - newPoint.x, height - newPoint.y, newPoint.r);
+    delta.x *= 0.9;
+    delta.y *= 0.9;
+    newPoint.x = tailX;
+    newPoint.y = tailY;
+    newPoint.r = max(MIN_W, newPoint.r * 0.9);
+  }
+
+  // fullscreen
+  if (flagScrn) return;
+  flagScrn = true;
+	if (document.documentElement.requestFullscreen) { // CHR (estandar)
+		document.documentElement.requestFullscreen();
+	}
+	else if (document.documentElement.webkitRequestFullscreen) { // SFI
+		document.documentElement.webkitRequestFullscreen();
+	}
+	else if (document.documentElement.mozRequestFullScreen) { // FFX
+		document.documentElement.mozRequestFullScreen();
+	}
+}
+
+//________________
+function windowResized() {
+  resizeCanvas(...getSize());
+  background(...colorB);
+}
+
+//________________
+function getSize() {
+  const minSize = 400;
+  const vw = window.visualViewport.width ?? window.innerWidth;
+  const vh = window.visualViewport.height ?? window.innerHeight;
+  const prp = vw / vh;
+  const isVert = prp < 1;
+  const maxSize = isVert
+    ? minSize * vh / vw
+    : minSize * prp;
+  return isVert
+    ? [minSize, maxSize]
+    : [maxSize, minSize];
+}
+
+</script>
+</body>
+</html>

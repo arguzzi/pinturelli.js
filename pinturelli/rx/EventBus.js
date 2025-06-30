@@ -2,237 +2,178 @@
 
 //////////////////////////////
 //
-// bus to organize event reactions (descriptions) by:
-// 1) channelId, 2) message, 3) receiverId.
-// --------------
-//
-//  #bus = channelIdsMap{
-//    channelId: expectedMessagesMap{
-//      message: receiverIdsMap{
-//        receiverId: description,
-//        receiverId: description,
-//      },
-//      message: receiverIdsMap{ receiverId: description, receiverId: ...},
-//      message: receiverIdsMap{ receiverId: description, receiverId: ...},
-//    },
-//    channelId: expectedMessagesMap{ message, message, ...},
-//    channelId: expectedMessagesMap{ message, message, ...},
-//  }
+//  bus = Map [channelId: (Map message: {Map subscriberId: description})] 
+//     -> channel       -> message    -> subscriber      : descrition
 //
 //////////////////////////////
 
 export default class EventBus {
-	#removedId = new Set();
-  #bus = new Map();
-  #dispatcher;
-  #allNodes;
-  #painter;
+  #bus = new Map(); // local memory
+  #deadIdsToClean = new Set();
+  #rootPublicKey = null;
+  #getAccessedMap;
+  #All_NODES;
+  #RX_MANAGER;
+  #DISPATCHER;
   
   //____________
   // will be freezed!!!
-  constructor({ ALL_NODES, PAINTER, DISPATCHER }) {
-    this.#dispatcher = DISPATCHER;
-    this.#allNodes = ALL_NODES;
-    this.#painter = PAINTER;
+  constructor({ ALL_NODES, RX_MANAGER, _rootPublicKey }) {
+    this.#All_NODES = ALL_NODES;
+    this.#RX_MANAGER = RX_MANAGER;
+    this.#getAccessedMap = RX_MANAGER._getAccessedMap;
+    this.#rootPublicKey = _rootPublicKey;
+
+    // DUMMY TEST
+    setTimeout(() => {
+      this._publish("$", "$tapped", { $semantic_name: "$tapped"});
+      console.log("emited dummy", this.#bus);
+    }, 2000);
+  }
+
+  //____________
+  _setRxConnection(DISPATCHER) {
+    this.#DISPATCHER = DISPATCHER;
   }
   
   //____________
-  _removeNodeReferences(nodeId) {
-		this.#removedId.add(nodeId);
-		setTimeout(() => {
-			this.#bus.delete(nodeId);
-	
-			const channelsToDelete = [];
-			const messagesToDelete = [];
-	
-			for (const [channelId, messages] of this.#bus) {
-				for (const [message, receivers] of messages) {
-					const wasRemoved = receivers.delete(nodeId);
-					if (wasRemoved && receivers.size === 0) {
-						messagesToDelete.push({ channelId, message });
-					}
-				}
-			}
-			
-			for (const { channelId, message } of messagesToDelete) {
-				const messages = this.#bus.get(channelId);
-				messages.delete(message);
-				if (messages.size === 0) {
-					channelsToDelete.push(channelId);
-				}
-			}
-			
-			for (const channelId of channelsToDelete) {
-				this.#bus.delete(channelId);
-			}
-
-			// this.#dispatcher.unsubscribe // PENDING
-		}, 0);
-	}
-
-  //____________
-  _listen(channelId, message, receiverId, description) {
-		this.#removedId.delete(channelId);
-		this.#removedId.delete(receiverId);
-    const thisBus = this.#bus;
-
+  _subscribe(channelId, message, subscriberId, description) {
     // if (channelId === "$") dispatcher.subscribe // PENDING
-
-    const hasChannel = thisBus.has(channelId);
-    const channel = hasChannel ? thisBus.get(channelId) : new Map();
-    if (!hasChannel) thisBus.set(channelId, channel);
-
-    const hasReceiver = hasChannel && channel.has(message);
-    const receiverIds = hasReceiver ? channel.get(message) : new Map();
-    if (!hasReceiver) channel.set(message, receiverIds);
-
-    receiverIds.set(receiverId, description);
-    
-    if (channelId !== "$") return;
-    const requestedData = description.firstConfig.requestData;
-    this.#dispatcher._setRequestedData(message, receiverId, requestedData);
+    const channelMap = this.#getAccessedMap(this.#bus, channelId);
+    const messageMap = this.#getAccessedMap(channelMap, message);
+    messageMap.set(subscriberId, description);
   }
   
   //____________
-  _stopListening(channelId, message, receiverId) {
-    const channel = this.#bus.get(channelId);
-    if (!channel) return; // no one is listening this channel
-    const receiverIds = channel.get(message);
-    if (!receiverIds) return; // no one is listening this message
+  _unsubscribeChannel(channelId, subscriberId) {
+    const channelMap = this.#bus.get(channelId);
+    if (!channelMap) return; // no sub is listening this channel
+    const emptyMessages = [];
+    for (const [message, messageMap] of channelMap) {
+      const wasDeleted = messageMap.delete(subscriberId);
+      if (wasDeleted && messageMap.size === 0) emptyMessages.push(message);
+    }
+    for (const message of emptyMessages) {
+      channelMap.delete(message);
+    }
+    if (channelMap.size === 0) this.#bus.delete(channelId);
+  }
 
-    receiverIds.delete(receiverId);
-
-    if (receiverIds.size === 0) channel.delete(message);
-    if (channel.size === 0) this.#bus.delete(channelId);
+  //____________
+  _unsubscribeMessage(channelId, message, subscriberId) {
+    const channelMap = this.#bus.get(channelId);
+    if (!channelMap) return; // no sub is listening this channel
+    const messageMap = channelMap.get(message);
+    if (!messageMap) return; // no sub is listening this message
+    const wasDeleted = messageMap.delete(subscriberId);
+    if (wasDeleted && messageMap.size === 0) channelMap.delete(message);
+    if (channelMap.size === 0) this.#bus.delete(channelId);
   }
 
 	//____________
-	#createDataManager(data) {
-		const thisBus = this;
-		return {
-			get: key => data?.[key],
-			
-			getByKeys: keys => keys.reduce((acc, key) => {
-				acc[key] = data?.[key];
-				return acc;
-			}, {}),
+  _publish(channelId, message, data) {
+    const channelMap = this.#bus.get(channelId);
+    if (!channelMap) return; // no sub is listening this channel
+    const messageMap = channelMap.get(message);
+    if (!messageMap) return; // no sub is listening this message
 
-			riskyPatch: (key, value) => {
-				data[key] = value;
-			},
+    // required data
+    if (message.startsWith("$") && !data._isRelay) {
+      this.#DISPATCHER._handleRequirement(channelId, message, data);
+    }
 
-			riskyPatchByObject: newData => {
-				for (const [key, value] of Object.entries(newData)) {
-					data[key] = value;
-				}
-			},
-
-			riskyRelay: thisBus._emit, // args: channel, message, data
-		}
-	}
-
-  //____________
-  _emitOnPrimaryChannel(data) { // provisional
-    // dispatcher should handle this internally. for targeted dispatch
-    this._emit("$", data.$semantic_name, data);
-  }
-
-  //____________
-  _emit(channelId, message, data) {
-		if (this.#removedId.has(channelId)) return;
-    const channel = this.#bus.get(channelId);
-    if (!channel) return; // no one is listening this channel
-    const receiverIds = channel.get(message);
-    if (!receiverIds) return; // no one is listening this message
-
-		data.message = message;
-		const dataManager = this.#createDataManager(data);
-
-    const emptyNodeIds = [];
-    receiverIds.forEach((description, receiverId) => {
-      const receiver = this.#allNodes.get(receiverId);
-      
-      if (!receiver) {
-        emptyNodeIds.push(receiverId);
-        console.log("invalid receiverId in event bus!!!!", receiverId);
-        return; // cancels the current execution of the forEach, not all of them
+    // each subscriber
+    for (const [subscriberId, description] of messageMap) {
+      const subscriber = this.#All_NODES.get(subscriberId);
+      if (!subscriber) {
+        this.#deadIdsToClean.add(subscriberId);
+        continue;
       }
+
+      const { firstConfig, firstMiddlewares, reactions } = description;
+      const { riskyRepublishing, riskyBubbling } = firstConfig;
 
       // first middlewares
-      for (const validation of description.firstValidations) {
-        if (validation(receiver._passiveManager, data)) continue;
-        return; // cancels the current execution of the forEach, not all of them
+      let keepGoing = true;
+      for (const middleware of firstMiddlewares) {
+        keepGoing = middleware(subscriber._passiveManager, data);
+        if (!keepGoing) break; // stop middlewares
+      }
+      if (!keepGoing) continue; // skip this subscriber
+      
+      // automatic propagation
+      if (riskyBubbling) {
+        this.#DISPATCHER._handleBubbling(subscriber, message, data);
+      }
+      if (riskyRepublishing && channelId !== subscriberId) {
+        this._publish(subscriberId, message, data);
       }
 
-      // automatic re-emition
-      if (description.firstConfig.propagation) {
-        this._emit(receiverId, message, data);
+      // delegate reactions
+      for (const reaction of reactions) {
+        const newReaction = { ...reaction, data };
+        this.#RX_MANAGER._setReaction(subscriber, newReaction);
       }
-
-      // each reaction
-      for (const reaction of description.reactions) {
-        this.#processReaction(receiver, reaction, data, dataManager);
-      }
-    });
-
-    // it shouldnt happen
-    for (const emptyNodeId of emptyNodeIds) {
-      receiverIds.delete(emptyNodeId);
-      this._removeNodeReferences(emptyNodeId);
     }
-    if (receiverIds.size === 0) channel.delete(message);
   }
 
   //____________
-  #processReaction(receiver, reaction, data, dataManager) {
+  _publishOnPrimaryChannel(data) { // PENDING
+    // dispatcher should handle this internally (targeted dispatch)
+    this._publish("$", data.$semantic_name, data);
+  }
+  
+  //____________
+  // PENDING: batch. add ids list to deadIds and force maintenance
+  // then -> clean dead ids in one pass over the complete event bus
+  _removeReferences(targetId, unknownKey) {
+    let some = false;
+    if (unknownKey !== this.#rootPublicKey) return some;
 
-    const delay = reaction.config.startAt;
-    if (delay > 0) {
-      const delayedConfig = { ...reaction.config, startAt: 0 };
-      const delayedSnapshot = { ...reaction, config: delayedConfig };
-      setTimeout(() => {
-        this.#processReaction(receiver, delayedSnapshot, data);
-      }, delay);
-      return;
-    }
-
-    for (const validation of reaction.validations) {
-      if (validation(receiver._passiveManager, dataManager)) continue;
-      return;
-    }
-
-    const rxSymbol = Symbol(reaction.config.token);
-		reaction.__rxSymbol = rxSymbol;
-    reaction.__receiver = receiver;
-    reaction.__reaction = reaction;
-    reaction.__dataManager = dataManager;
-
-		const isSnap = reaction.config.duration === 0;
-    if (isSnap) this.#painter._setSnapshot(receiver, reaction, rxSymbol);
-    else this.#painter._setSequence(receiver, reaction, rxSymbol);
-    // always: repeat, cancelByToken, cancelBySelector, cancelBySelectorAll
-    // sequence only: duration, useTime, useTimeBezier, useTimeSteps
+    const emptyChannelIds = new Set(); // [channelId, channelId, ...]
+    const emptyMessages = new Set(); // [{message, channelMap, channelId}, ...]
     
-		const fakeTimeManager = { get: () => 0, riskyPatch: () => {} };
-    const realTimeManager = this.#painter._getTimeManager(rxSymbol);
-		const timeManager = isSnap ? fakeTimeManager : realTimeManager;
-    reaction.update(receiver._activeManager, dataManager, timeManager);
-
-    for (const relay of reaction.relays) {
-      this.#processRelay(receiver, relay, data);
+    // remove channel
+    some = this.#bus.delete(targetId) || some;
+      
+    // remove subscriber
+    for (const [channelId, channelMap] of this.#bus) {
+      for (const [message, messageMap] of channelMap) {
+        some = messageMap.delete(targetId) || some;
+        
+        // last subscriber case
+        if (messageMap.size !== 0) continue;
+        emptyMessages.add({ message, channelMap, channelId });
+      }
     }
+    
+    // side effects
+    for (const { message, channelMap, channelId } of emptyMessages) {
+      channelMap.delete(message);
+
+      // last message case
+      if (channelMap.size !== 0) continue;
+      emptyChannelIds.add(channelId);
+    }
+
+    // side effects of side effects
+    for (const channelId of emptyChannelIds) {
+      this.#bus.delete(channelId);
+    }
+
+    return some;
   }
 
-	//____________
-	#processRelay(receiver, relay, data) {
-		if (relay.channels.length === 0) {
-			this._emit(receiver.nodeId, data.message, data);
-			return;
-		}
-
-		for (const channel of relay.channels) {
-			if (channel !== "#") this._emit(channel, data.message, data);
-			else this._emit(receiver.nodeId, data.message, data);
-		}
-	}
+  //____________
+  _runMaintenanceTasks(unknownKey) {
+    // PENDING. refactor to batch
+    let some = false;
+    const rootPublicKey = this.#rootPublicKey;
+    if (unknownKey !== rootPublicKey) return some;
+    for (const targetId of this.#deadIdsToClean) {
+      some = this._removeReferences(targetId, rootPublicKey) || some;
+    }
+    this.#deadIdsToClean.clear();
+    return some;
+  }
 }

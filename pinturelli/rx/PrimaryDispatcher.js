@@ -1,17 +1,34 @@
 export default class PrimaryDispatcher {
+  #TARGETS = new Set();
   #EMITTER = null;
+  #EVENT_BUS = null;
 
   //____________
   // public properties will be freezed!!!
-  constructor({ GLOBAL }) {
-    this.DEBUG = false;
-    this.EVENT_BUS = GLOBAL.EVENT_BUS;
+  constructor({ EVENT_BUS }) {
+    this.#EVENT_BUS = EVENT_BUS;
   }
 
+  //____________
   // _setRequestedData(message, receiverId, requestedData) {
   // }
 
-  _runRxConection(EMITTER) {
+  //____________
+  _handleRequirement(channelId, message, data) {
+  }
+  
+  //____________
+  _handleBubbling() {
+  }
+
+  //____________
+  _setUiConnection(node) {
+    this.#TARGETS.add(node);
+  }
+  
+  //____________
+  _setRxConnection(EMITTER) {
+    this.#EVENT_BUS._setRxConnection(this)
     this.#EMITTER = EMITTER;
     this.#EMITTER.updateContextWatchedNames([
       {
@@ -55,11 +72,12 @@ export default class PrimaryDispatcher {
       },
       {
         $semantic_name: "$tapped",
-        required: "[$is-active, $cnv-x, $cnv-y]",
+        required: "[$is-active, $canvas-x, $canvas-y]",
       },
     ], false);
   }
 
+  //____________
   emitterInputTest(_memo, _state){
     console.log("FROM DISPATCHER!!!!\n@> type:", _memo?.event?.type, "\n#> memo:", _memo ,"\n*> state:", _state ,"\n")
     if (_state.$data.get("$semantic_name") === "$gesture_started") {
@@ -71,6 +89,7 @@ export default class PrimaryDispatcher {
     this.EVENT_BUS._emitOnPrimaryChannel(_state.$data);
   }
 
+  //____________
   emitterInput(_e, _state){
     console.log("FROM DISPATCHER!!!!\n@> name:", _e.$data.get("$name"), "\n#> data:", _e.$data ,"\n*> state:", _state ,"\n")
   }

@@ -4,12 +4,13 @@ import { throwError } from "../_debugOutput.js";
 ////////////////////////////
 //
 export const stateFormat = () => {
-  
+  return//@@@
 }
 
 //////////////////////////////
 //
 const pseudoCssParams = (sizeKeys, key, value) => {
+  return//@@@
 	if (sizeKeys.includes(key)) {
 		const notNegativeUnit = /^(?:\.\d+|\d+\.\d+|\d+%|\d+px|\d+(?:\.\d+)?rem)$/;
 		if (notNegativeUnit.test(value)) return; // format and not negative ok
@@ -23,6 +24,7 @@ const pseudoCssParams = (sizeKeys, key, value) => {
 //////////////////////////////
 //
 const sizeParams = (...args) => {
+  return//@@@
 	if (args.some(arg => areNot.null(arg) && (areNot.number(arg) || arg < 0))) { 
 		throwError(`validateBox (sizeParams)`, `Size params must be a non-negative-number or null. Invalid: ${args.join(", ")}`);
 	}
@@ -46,6 +48,7 @@ const sizeParams = (...args) => {
 //////////////////////////////
 //
 const positionParams = (...args) => {
+  return//@@@
 }
 
 //////////////////////////////

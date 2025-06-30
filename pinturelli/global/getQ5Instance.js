@@ -1,4 +1,4 @@
-import { testMode } from "../debug/_allModesFlags";
+// import { testMode } from "../debug/_allModesFlags";
 
 ////////////////////////////
 //
@@ -8,11 +8,9 @@ export default function getQ5Instance(description) {
   // canvas container
   const container = (() => {
   let customContainer = document.querySelector(`#${containerId}`);
-    if (customContainer) {
-      customContainer.setAttribute("id", `pinturelli${rootId}`);
-      return customContainer;
-    }
+    if (customContainer) return customContainer;
 
+    // fallback
     const pg = document.querySelector("main") ?? document.body;
     const fallbackContainer = document.createElement("div");
     fallbackContainer.setAttribute("id", `pinturelli${rootId}`);

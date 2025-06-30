@@ -11,7 +11,7 @@ const exampleBlock = pinturelliNode({
   //_______
   state: {
     labels: [], // Default: []
-    followingId: "_myFirstRoot", // Default: rootId
+    following_id: "_myFirstRoot", // Default: rootId
     left: 30, // Default: 0
     right: null,
     top: 20, // Default: 0
@@ -19,16 +19,16 @@ const exampleBlock = pinturelliNode({
     width: 100, // Default: 100
     height: 50, // Default: 50
     proportion: 0,
-    offsetX: 10, // Default: 0
-    offsetY: 40, // Default: 0
+    offset_x: 10, // Default: 0
+    offset_y: 40, // Default: 0
     originX: 0,
     originY: 0,
-    treeVisibility: true, 
-    nodeVisibility: true,
-    treeLayer: 1, // Default: 0
-    nodeLayer: 1, // Default: 0
+    tree_visibility: true, 
+    node_visibility: true,
+    tree_layer: 1, // Default: 0
+    node_layer: 1, // Default: 0
     painting: "myFirstBackground", // Default: "_empty"
-    overlayedPainting: "_empty",
+    overlayed_painting: "_empty",
   },
 
   //_______

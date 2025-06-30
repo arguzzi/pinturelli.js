@@ -25,18 +25,24 @@ const treeInitialized = (rootId, isTracked, allNodes) => {
 
 //////////////////////////////
 //
-const cleanupEnded = (rootId, nodeId) => {
-  genericLogger(rootId, `Successfully removed "${nodeId}" from memory`);
+const cleanupStarted = (rootId, nodeId, done) => {
+  if (done) genericLogger(rootId, `All references to "${nodeId}" were removed from the Registry...`);
+  else genericLogger(rootId, `Failed removing references of "${nodeId}" from the Registry!!!`);
 }
 
 //////////////////////////////
 //
-const unsafeIteration = (path, accumulator, stop) => {
-  const selected = accumulator.newSelected;
+const cleanupEnded = (rootId, nodeId) => {
+  genericLogger(rootId, `Successfully cleaned up the node "${nodeId}" from the memory`);
+}
+
+//////////////////////////////
+//
+const unsafeIteration = (path, selected, stop) => {
   const rootId = selected?.[0]?.rootId;
-  const info = { path, actualBatch: selected.length, ...stop };
+  const info = { path, actualBatch: selected?.length, ...stop };
   genericLogger(rootId, `Selection exceeded safe iteration limits`);
-  checkStructure(`the iteration info`, info);
+  checkStructure(`the details`, info);
 }
 
 //////////////////////////////
@@ -47,11 +53,19 @@ const missingNode = (origin, path) => {
 
 //////////////////////////////
 //
+const removedDeadId = nodeId => {
+  genericLogger("Registry", `Dead id "${nodeId}" was found and removed from the Registry`);
+}
+
+//////////////////////////////
+//
 export default {
   newRootCreated,
   setupStarted,
 	treeInitialized,
+  cleanupStarted,
   cleanupEnded,
   unsafeIteration,
   missingNode,
+  removedDeadId,
 }

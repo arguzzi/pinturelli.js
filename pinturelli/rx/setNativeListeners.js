@@ -16,7 +16,7 @@ import { genericLogger } from "../debug/_debugOutput.js";
 //
 //////////////////////////////
 
-export default setNativeListeners = (dependencies) => {
+export default (dependencies) => {
   const { SKETCH, EMITTER } = dependencies;
   const container = SKETCH._pinturelli.container;
   
